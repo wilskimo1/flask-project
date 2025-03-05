@@ -1,10 +1,19 @@
 {% extends "base.html" %}
 
-{% block title %}Contact - My Flask Site{% endblock %}
+{% block title %}Contact - Will Robinson{% endblock %}
 
 {% block content %}
-<div class="reveal">
     <h1>Contact Me</h1>
-    <p>Email: your@email.com</p>
-</div>
+    <form>
+        <div class="mb-3">
+            <input type="text" class="form-control" placeholder="Your Name">
+        </div>
+        <div class="mb-3">
+            <input type="email" class="form-control" placeholder="Your Email">
+        </div>
+        <div class="mb-3">
+            <textarea class="form-control" rows="4" placeholder="Your Message"></textarea>
+        </div>
+        <button class="btn btn-primary">Send</button>
+    </form>
 {% endblock %}

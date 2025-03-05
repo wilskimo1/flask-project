@@ -1,0 +1,38 @@
+{% extends "base.html" %}
+
+{% block title %}{{ project.title }} - Project Details{% endblock %}
+
+{% block content %}
+<div class="container mt-5">
+    <h1 class="text-center">{{ project.title }}</h1>
+    <p class="text-center"><strong>Technologies Used:</strong> {{ project.technologies }}</p>
+
+    <div class="row justify-content-center">
+        <div class="col-lg-8">
+            
+            <!-- Project Demo GIF Placeholder -->
+            <div class="text-center my-4">
+                <img src="{{ url_for('static', filename='gifs/' + project.id + '.gif') }}" 
+                     alt="Demo of {{ project.title }}" 
+                     class="img-fluid rounded shadow">
+                <p class="text-muted">*GIF will showcase the project's functionality.</p>
+            </div>
+
+            <h3>Project Overview</h3>
+            <p>{{ project.detailed_description }}</p>
+
+            <h3>Commercial Use Case</h3>
+            <p>{{ project.commercial_use_case }}</p>
+
+            <!-- Show Deployment Guide link only for Project #9 -->
+            {% if project.id == "flask-aws-deployment" %}
+                <div class="text-center mt-4">
+                    <a href="{{ url_for('deployment_docs') }}" class="btn btn-info">Read Full Deployment Guide</a>
+                </div>
+            {% endif %}
+
+            <a href="{{ url_for('projects_page') }}" class="btn btn-primary mt-3">Back to Projects</a>
+        </div>
+    </div>
+</div>
+{% endblock %}

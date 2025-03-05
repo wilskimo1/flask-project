@@ -1,10 +1,16 @@
 {% extends "base.html" %}
 
-{% block title %}Home - My Flask Site{% endblock %}
+{% block title %}Home - Will Robinson{% endblock %}
 
 {% block content %}
-    <div class="reveal text-center">
-        <h1 class="display-4">Welcome to My Flask Website!</h1>
-        <p class="lead">This is a modern and responsive Flask site using Bootstrap.</p>
+    <div class="hero">
+        <img src="{{ url_for('static', filename='images/profile.jpg') }}" alt="Will Robinson" class="profile-img">
+        <h1>Hi, I'm Will</h1>
+        <p class="bio">
+            An experienced IT professional specializing in Python, Flask, and AWS Cloud Architecture. 
+            I design and build cloud-based solutions that enhance automation, security, and scalability. 
+            Explore my portfolio to see real-world projects in action.
+        </p>
     </div>
 {% endblock %}
+
