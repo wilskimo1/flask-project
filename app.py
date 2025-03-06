@@ -1,7 +1,15 @@
-from flask import Flask, render_template, jsonify
-import random
+from flask import Flask, render_template, jsonify, send_from_directory
+import os, random, requests
 
 app = Flask(__name__)
+
+# Directory for knowledge repository documents
+KNOWLEDGE_REPO_DIR = "static/knowledge_docs"
+
+# GitHub Configuration
+GITHUB_USERNAME = "wilskimo1"
+GITHUB_REPO = "flask-project"
+GITHUB_API_URL = f"https://api.github.com/repos/{GITHUB_USERNAME}/{GITHUB_REPO}/commits"
 
 # Full Project Data (All 9 Projects)
 projects = [
@@ -79,50 +87,103 @@ projects = [
     }
 ]
 
-# Homepage Route
+# 🏠 Homepage Route
 @app.route("/")
 def home():
     return render_template("index.html")
 
-# Projects Page
+# Ensure Flask serves static files (especially `scripts.js` and `styles.css`)
+@app.route('/static/<path:filename>')
+def static_files(filename):
+    return send_from_directory('static', filename)
+
+# 📂 Projects API Route - Fetch all projects
+@app.route("/api/projects", methods=["GET"])
+def get_projects():
+    return jsonify(projects)
+
+# 🔍 Projects API Route - Fetch specific project by ID
+@app.route("/api/projects/<project_id>", methods=["GET"])
+def get_project(project_id):
+    project = next((p for p in projects if p["id"] == project_id), None)
+    if not project:
+        return jsonify({"error": "Project not found"}), 404
+    return jsonify(project)
+
+# 🏗️ Projects Page
 @app.route("/projects")
 def projects_page():
     return render_template("projects.html", projects=projects)
 
-# Deployment page route
+# 📑 Deployment Documentation Page
 @app.route("/deployment-docs")
 def deployment_docs():
     return render_template("deployment_docs.html")
 
-# Individual Project Details
-@app.route("/projects/<project_name>")
-def project_detail(project_name):
-    print(f"Fetching details for project: {project_name}")  # Debugging line
+# 📝 Individual Project Details Page
+@app.route("/projects/<project_id>")
+def project_detail(project_id):
+    return render_template("project_details.html")
 
-    # Try to find the project in the list
-    project = next((p for p in projects if p["id"] == project_name), None)
+# 📚 Knowledge Repository Route
+@app.route("/knowledge")
+def knowledge_repository():
+    try:
+        documents = os.listdir(KNOWLEDGE_REPO_DIR)
+        documents = [doc for doc in documents if doc.endswith(('.pdf', '.txt', '.docx', '.md'))]  # Filter valid file types
+    except FileNotFoundError:
+        documents = []
+    return render_template("knowledge.html", documents=documents)
 
-    if not project:
-        print("Error: Project not found")  # Debugging output
-        return "Project Not Found", 404
+# 📥 Knowledge Repository - File Download
+@app.route("/knowledge/download/<filename>")
+def download_document(filename):
+    return send_from_directory(KNOWLEDGE_REPO_DIR, filename, as_attachment=True)
 
-    return render_template("project_details.html", project=project)
+# View Knowledge Repository Document in Browser
+@app.route("/knowledge/view/<filename>")
+def view_document(filename):
+    return send_from_directory(KNOWLEDGE_REPO_DIR, filename)
 
-# Experience Page
+# 📂 Experience Page
 @app.route("/experience")
 def experience():
     return render_template("experience.html")
 
-# Contact Page
+# 📩 Contact Page
 @app.route("/contact")
 def contact():
     return render_template("contact.html")
 
-# API: Random Number Generator
+# 🎲 API: Random Number Generator (Example Interactive Feature)
 @app.route("/api/random-number", methods=["GET"])
 def random_number():
     return jsonify({"random_number": random.randint(1, 100)})
 
-# Run Flask App
+# 📌 New API: Fetch latest GitHub commits
+@app.route("/api/github-commits", methods=["GET"])
+def get_github_commits():
+    try:
+        response = requests.get(GITHUB_API_URL)
+        if response.status_code != 200:
+            return jsonify({"error": "Failed to fetch commits"}), response.status_code
+        
+        commits_data = response.json()
+        commits = []
+
+        for commit in commits_data[:5]:  # Get the latest 5 commits
+            commits.append({
+                "message": commit["commit"]["message"],
+                "author": commit["commit"]["author"]["name"],
+                "date": commit["commit"]["author"]["date"],
+                "url": commit["html_url"]
+            })
+
+        return jsonify(commits)
+
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+# 🚀 Run Flask App
+
 if __name__ == "__main__":
-    app.run(debug=True)
+    app.run(debug=False)

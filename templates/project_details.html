@@ -1,38 +1,31 @@
 {% extends "base.html" %}
 
-{% block title %}{{ project.title }} - Project Details{% endblock %}
+{% block title %}Project Details - Will Robinson{% endblock %}
 
 {% block content %}
 <div class="container mt-5">
-    <h1 class="text-center">{{ project.title }}</h1>
-    <p class="text-center"><strong>Technologies Used:</strong> {{ project.technologies }}</p>
+    <h1 id="project-title" class="text-center"></h1>
+    <p id="project-technologies" class="text-center"><strong>Technologies Used:</strong></p>
 
     <div class="row justify-content-center">
         <div class="col-lg-8">
-            
-            <!-- Project Demo GIF Placeholder -->
-            <div class="text-center my-4">
-                <img src="{{ url_for('static', filename='gifs/' + project.id + '.gif') }}" 
-                     alt="Demo of {{ project.title }}" 
-                     class="img-fluid rounded shadow">
-                <p class="text-muted">*GIF will showcase the project's functionality.</p>
-            </div>
-
             <h3>Project Overview</h3>
-            <p>{{ project.detailed_description }}</p>
+            <p id="project-description"></p>
 
             <h3>Commercial Use Case</h3>
-            <p>{{ project.commercial_use_case }}</p>
+            <p id="project-use-case"></p>
 
-            <!-- Show Deployment Guide link only for Project #9 -->
-            {% if project.id == "flask-aws-deployment" %}
-                <div class="text-center mt-4">
-                    <a href="{{ url_for('deployment_docs') }}" class="btn btn-info">Read Full Deployment Guide</a>
-                </div>
-            {% endif %}
+            <!-- Show Deployment Guide link only for Flask AWS Deployment project -->
+            <div id="deployment-guide" class="text-center mt-4" style="display: none;">
+                <a href="{{ url_for('deployment_docs') }}" class="btn btn-info">Read Full Deployment Guide</a>
+            </div>
 
             <a href="{{ url_for('projects_page') }}" class="btn btn-primary mt-3">Back to Projects</a>
         </div>
     </div>
 </div>
+
+<!-- Include script to fetch project details -->
+<script defer src="{{ url_for('static', filename='js/script.js') }}"></script>
+
 {% endblock %}

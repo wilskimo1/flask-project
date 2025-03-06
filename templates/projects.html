@@ -7,21 +7,27 @@
     <h1 class="text-center mb-4">My Projects</h1>
     <p class="lead text-center">Explore my work in cloud computing, automation, and AI-driven applications.</p>
 
-    <div class="row">
-        {% for project in projects %}
-        <div class="col-md-4 mb-4">
-            <a href="{{ url_for('project_detail', project_name=project.id) }}" class="project-link">
-                <div class="card project-card">
-                    <div class="card-body">
-                        <h3>{{ project.title }}</h3>
-                        <p><strong>Technologies:</strong> {{ project.technologies }}</p>
-                        <p>{{ project.short_description }}</p>
-                        <button class="btn btn-outline-primary mt-2">Learn More</button>
-                    </div>
-                </div>
-            </a>
-        </div>
-        {% endfor %}
+    <div id="projects-container" class="row">
+        <!-- Projects will be dynamically loaded here -->
     </div>
+
+    <!-- 🟢 GitHub Commits Section -->
+    <div class="container mt-5">
+        <h3 class="text-center">Latest GitHub Commits</h3>
+        <ul id="github-commits" class="list-group"></ul>
+    </div>
+
+    <!-- 🟢 Random Number Generator -->
+    <div class="container text-center mt-5">
+        <h3>Random Number Generator</h3>
+        <p>Click the button to generate a random number from the API.</p>
+        <button id="random-btn" class="btn btn-primary">Get Random Number</button>
+        <p id="random-result" class="mt-3"></p>
+    </div>
+
 </div>
+
+<!-- Include script to fetch project data -->
+<script src="{{ url_for('static', filename='js/script.js') }}"></script>
+
 {% endblock %}
