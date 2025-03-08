@@ -1,5 +1,11 @@
-from flask import Flask, render_template, jsonify, send_from_directory
-import os, random, requests
+from flask import Flask, render_template, jsonify, send_from_directory, request
+import os, random, requests, boto3, json
+from transformers import pipeline # ✅ Free AI Model for Text Summarization
+import yfinance as yf #Yahoo Finance API
+from PIL import Image
+import io
+import easyocr
+from facenet_pytorch import MTCNN
 
 app = Flask(__name__)
 
@@ -10,6 +16,219 @@ KNOWLEDGE_REPO_DIR = "static/knowledge_docs"
 GITHUB_USERNAME = "wilskimo1"
 GITHUB_REPO = "flask-project"
 GITHUB_API_URL = f"https://api.github.com/repos/{GITHUB_USERNAME}/{GITHUB_REPO}/commits"
+
+# ✅ Load AI Models
+image_recognition = pipeline("image-classification", model="facebook/deit-base-distilled-patch16-224")
+object_detection = pipeline("object-detection", model="facebook/detr-resnet-50")
+face_detection = MTCNN(keep_all=True)  # Initializes the face detector
+ocr_reader = easyocr.Reader(['en'])  # OCR Model
+
+# AWS Secrets Manager Config
+SECRET_ARN = "arn:aws:secretsmanager:us-east-1:529088269091:secret:AWS_Cost_Tracker_Credentials-oyUCVy"
+
+def get_aws_credentials():
+    """Fetch AWS credentials securely from AWS Secrets Manager."""
+    try:
+        client = boto3.client("secretsmanager", region_name="us-east-1")
+        response = client.get_secret_value(SecretId=SECRET_ARN)
+        secret_data = json.loads(response["SecretString"])
+        return secret_data["AWS_ACCESS_KEY_ID"], secret_data["AWS_SECRET_ACCESS_KEY"]
+    except Exception as e:
+        print(f"❌ Error fetching secrets: {e}")
+        return None, None
+
+# Get AWS credentials
+AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY = get_aws_credentials()
+
+# Validate if credentials are retrieved
+if not AWS_ACCESS_KEY_ID or not AWS_SECRET_ACCESS_KEY:
+    raise ValueError("❌ AWS Credentials not retrieved. Check Secrets Manager.")
+
+# Initialize AWS Cost Explorer client
+ce_client = boto3.client(
+    "ce",
+    aws_access_key_id=AWS_ACCESS_KEY_ID,
+    aws_secret_access_key=AWS_SECRET_ACCESS_KEY,
+    region_name="us-east-1"
+)
+
+# 🔹 Function to fetch AWS cost data
+def get_aws_cost():
+    """Retrieve AWS cost data from Cost Explorer."""
+    try:
+        response = ce_client.get_cost_and_usage(
+            TimePeriod={"Start": "2024-03-01", "End": "2024-03-31"},
+            Granularity="MONTHLY",
+            Metrics=["BlendedCost"]
+        )
+        cost = response["ResultsByTime"][0]["Total"]["BlendedCost"]["Amount"]
+        return float(cost)
+    except Exception as e:
+        print(f"❌ Error fetching cost data: {e}")
+        return None
+
+
+
+# 📂 AWS Cost Tracker Route
+@app.route("/aws-cost")
+def aws_cost():
+    """Display AWS cost data in UI."""
+    current_cost = get_aws_cost()
+    if current_cost is None:
+        return "Error retrieving AWS cost data."
+
+    alert_status = "✅ OK" if current_cost < 100 else "🚨 ALERT: Budget Exceeded!"
+    
+    return render_template("aws_cost.html", cost=current_cost, alert_status=alert_status)
+
+# ✅ AI Model: Load Free Text Summarizer (Hugging Face Model)
+summarizer = pipeline("summarization", model="facebook/bart-large-cnn")
+
+# ✅ AI Model: Load Free Image Recognition Model
+image_recognition = pipeline("image-classification", model="facebook/deit-base-distilled-patch16-224")
+
+
+# ✅ AI API Route - Free Text Summarization
+@app.route("/api/summarize", methods=["POST"])
+def summarize_text():
+    try:
+        data = request.get_json()
+        text = data.get("text", "")
+
+        if not text:
+            return jsonify({"error": "No text provided"}), 400
+
+        summary = summarizer(text, max_length=130, min_length=30, do_sample=False)
+        return jsonify({"summary": summary[0]["summary_text"]})
+
+    except Exception as e:
+        print(f"❌ Error in text summarization: {e}")
+        return jsonify({"error": str(e)}), 500
+
+# ✅ AI Tools Routes
+@app.route("/ai/text-summarizer")
+def text_summarizer():
+    return render_template("text_summarizer.html")
+
+@app.route("/api/image-recognition", methods=["POST"])
+def recognize_image():
+    try:
+        data = request.get_json()
+        image_url = data.get("image_url", "")
+
+        if not image_url:
+            return jsonify({"error": "No image URL provided"}), 400
+
+        # Fetch the image content
+        response = requests.get(image_url)
+        if response.status_code != 200:
+            return jsonify({"error": "Invalid image URL"}), 400
+
+        # Convert image bytes to a PIL image
+        image = Image.open(io.BytesIO(response.content)).convert("RGB")
+
+        # Run AI model
+        results = image_recognition(image)
+
+        return jsonify({"labels": results})
+
+    except Exception as e:
+        print(f"❌ Error in image recognition: {e}")
+        return jsonify({"error": str(e)}), 500
+
+@app.route("/api/stock-predictor", methods=["POST"])
+def stock_predictor():
+    try:
+        data = request.get_json()
+        stock_symbol = data.get("stock_symbol", "").upper()  # Ensure symbol is uppercase
+
+        if not stock_symbol:
+            return jsonify({"error": "No stock symbol provided"}), 400
+
+        stock = yf.Ticker(stock_symbol)
+        history = stock.history(period="1mo")
+
+        if history.empty:
+            return jsonify({"error": f"Invalid stock symbol: {stock_symbol} or no data available"}), 400
+
+        latest_price = history["Close"].iloc[-1]
+
+        return jsonify({"stock_symbol": stock_symbol, "latest_price": latest_price})
+
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+@app.route("/api/object-detection", methods=["POST"])
+def detect_objects():
+    try:
+        data = request.get_json()
+        image_url = data.get("image_url", "")
+
+        if not image_url:
+            return jsonify({"error": "No image URL provided"}), 400
+
+        response = requests.get(image_url)
+        if response.status_code != 200:
+            return jsonify({"error": "Invalid image URL"}), 400
+
+        image = Image.open(io.BytesIO(response.content)).convert("RGB")
+        results = object_detection(image)
+        return jsonify({"labels": results})
+
+    except Exception as e:
+        print(f"❌ Error in object detection: {e}")
+        return jsonify({"error": str(e)}), 500
+
+@app.route("/api/face-recognition", methods=["POST"])
+def recognize_faces():
+    try:
+        data = request.get_json()
+        image_url = data.get("image_url", "")
+
+        if not image_url:
+            return jsonify({"error": "No image URL provided"}), 400
+
+        response = requests.get(image_url)
+        if response.status_code != 200:
+            return jsonify({"error": "Invalid image URL"}), 400
+
+        image = Image.open(io.BytesIO(response.content)).convert("RGB")
+
+        # Detect faces
+        boxes, _ = face_detection.detect(image)
+
+        if boxes is None:
+            return jsonify({"faces": []})  # No faces detected
+
+        results = [{"box": box.tolist()} for box in boxes]
+
+        return jsonify({"faces": results})
+
+    except Exception as e:
+        print(f"❌ Error in face recognition: {e}")
+        return jsonify({"error": str(e)}), 500
+
+@app.route("/api/ocr", methods=["POST"])
+def extract_text():
+    try:
+        data = request.get_json()
+        image_url = data.get("image_url", "")
+
+        if not image_url:
+            return jsonify({"error": "No image URL provided"}), 400
+
+        response = requests.get(image_url)
+        if response.status_code != 200:
+            return jsonify({"error": "Invalid image URL"}), 400
+
+        image = Image.open(io.BytesIO(response.content)).convert("RGB")
+        results = ocr_reader.readtext(image)
+        text_results = [entry[1] for entry in results]
+        return jsonify({"text": text_results})
+
+    except Exception as e:
+        print(f"❌ Error in OCR: {e}")
+        return jsonify({"error": str(e)}), 500
 
 # Full Project Data (All 9 Projects)
 projects = [
@@ -183,7 +402,40 @@ def get_github_commits():
 
     except Exception as e:
         return jsonify({"error": str(e)}), 500
-# 🚀 Run Flask App
+    
+# ✅ AI Tools Routes
+@app.route("/ai/text-summarizer")
+def text_summarizer_page():
+    return render_template("text_summarizer.html")
 
+@app.route("/ai/image-recognition")
+def image_recognition_page():
+    return render_template("image_recognition.html")
+
+@app.route("/ai/stock-predictor")
+def stock_predictor_page():
+    return render_template("stock_predictor.html")
+
+# ✅ AI Model: Load Free Text Summarizer (Hugging Face Model)
+summarizer = pipeline("summarization", model="facebook/bart-large-cnn")
+
+# ✅ AI API Route - Free Text Summarization
+@app.route("/api/summarize", methods=["POST"])
+def summarize_text_api():
+    try:
+        data = request.get_json()
+        text = data.get("text", "")
+
+        if not text:
+            return jsonify({"error": "No text provided"}), 400
+
+        summary = summarizer(text, max_length=130, min_length=30, do_sample=False)
+        return jsonify({"summary": summary[0]["summary_text"]})
+
+    except Exception as e:
+        print(f"❌ Error in text summarization: {e}")
+        return jsonify({"error": str(e)}), 500
+
+# 🚀 Run Flask App
 if __name__ == "__main__":
     app.run(debug=False)

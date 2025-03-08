@@ -32,6 +32,24 @@ body {
     color: #000;
 }
 
+/*I may remove below
+/* Ensure navbar collapses properly at medium screens */
+@media (max-width: 1200px) {
+    .navbar-nav {
+        flex-wrap: wrap;  /* Allow items to wrap instead of overflowing */
+        justify-content: center;
+    }
+
+    .navbar-nav .nav-item {
+        margin: 5px; /* Reduce spacing between items */
+    }
+
+    .navbar-brand {
+        font-size: 1rem; /* Reduce navbar brand size on smaller screens */
+    }
+}
+/*i may remove above
+
 /* Hero Section - Ensuring Full View & Alignment */
 .hero {
     min-height: 100vh;
