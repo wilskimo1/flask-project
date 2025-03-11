@@ -1,0 +1,16 @@
+{% extends "base.html" %}
+
+{% block title %}IT Compliance Auditor - Will Robinson{% endblock %}
+
+{% block content %}
+<div class="container mt-5">
+    <h1 class="text-center">IT Compliance Auditor</h1>
+    <p class="text-center">Scans AWS for compliance violations.</p>
+
+    <div class="text-center mt-4">
+        <a href="{{ url_for('project_detail', project_id='it-compliance-auditor') }}" class="btn btn-secondary">
+            ⬅️ Go Back to Project Details
+        </a>
+    </div>
+</div>
+{% endblock %}

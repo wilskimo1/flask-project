@@ -1,0 +1,16 @@
+{% extends "base.html" %}
+
+{% block title %}Flask AWS Deployment - Will Robinson{% endblock %}
+
+{% block content %}
+<div class="container mt-5">
+    <h1 class="text-center">Flask AWS Deployment</h1>
+    <p class="text-center">End-to-end cloud deployment with CI/CD.</p>
+
+    <div class="text-center mt-4">
+        <a href="{{ url_for('project_detail', project_id='flask-aws-deployment') }}" class="btn btn-secondary">
+            ⬅️ Go Back to Project Details
+        </a>
+    </div>
+</div>
+{% endblock %}

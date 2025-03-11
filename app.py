@@ -1,11 +1,5 @@
-from flask import Flask, render_template, jsonify, send_from_directory, request
+from flask import Flask, render_template, jsonify, send_from_directory
 import os, random, requests, boto3, json
-from transformers import pipeline # ✅ Free AI Model for Text Summarization
-import yfinance as yf #Yahoo Finance API
-from PIL import Image
-import io
-import easyocr
-from facenet_pytorch import MTCNN
 
 app = Flask(__name__)
 
@@ -16,12 +10,6 @@ KNOWLEDGE_REPO_DIR = "static/knowledge_docs"
 GITHUB_USERNAME = "wilskimo1"
 GITHUB_REPO = "flask-project"
 GITHUB_API_URL = f"https://api.github.com/repos/{GITHUB_USERNAME}/{GITHUB_REPO}/commits"
-
-# ✅ Load AI Models
-image_recognition = pipeline("image-classification", model="facebook/deit-base-distilled-patch16-224")
-object_detection = pipeline("object-detection", model="facebook/detr-resnet-50")
-face_detection = MTCNN(keep_all=True)  # Initializes the face detector
-ocr_reader = easyocr.Reader(['en'])  # OCR Model
 
 # AWS Secrets Manager Config
 SECRET_ARN = "arn:aws:secretsmanager:us-east-1:529088269091:secret:AWS_Cost_Tracker_Credentials-oyUCVy"
@@ -67,8 +55,6 @@ def get_aws_cost():
         print(f"❌ Error fetching cost data: {e}")
         return None
 
-
-
 # 📂 AWS Cost Tracker Route
 @app.route("/aws-cost")
 def aws_cost():
@@ -79,206 +65,49 @@ def aws_cost():
 
     alert_status = "✅ OK" if current_cost < 100 else "🚨 ALERT: Budget Exceeded!"
     
-    return render_template("aws_cost.html", cost=current_cost, alert_status=alert_status)
+    return render_template("aws-cost.html", cost=current_cost, alert_status=alert_status)
 
-# ✅ AI Model: Load Free Text Summarizer (Hugging Face Model)
-summarizer = pipeline("summarization", model="facebook/bart-large-cnn")
-
-# ✅ AI Model: Load Free Image Recognition Model
-image_recognition = pipeline("image-classification", model="facebook/deit-base-distilled-patch16-224")
-
-
-# ✅ AI API Route - Free Text Summarization
-@app.route("/api/summarize", methods=["POST"])
-def summarize_text():
-    try:
-        data = request.get_json()
-        text = data.get("text", "")
-
-        if not text:
-            return jsonify({"error": "No text provided"}), 400
-
-        summary = summarizer(text, max_length=130, min_length=30, do_sample=False)
-        return jsonify({"summary": summary[0]["summary_text"]})
-
-    except Exception as e:
-        print(f"❌ Error in text summarization: {e}")
-        return jsonify({"error": str(e)}), 500
-
-# ✅ AI Tools Routes
-@app.route("/ai/text-summarizer")
-def text_summarizer():
-    return render_template("text_summarizer.html")
-
-@app.route("/api/image-recognition", methods=["POST"])
-def recognize_image():
-    try:
-        data = request.get_json()
-        image_url = data.get("image_url", "")
-
-        if not image_url:
-            return jsonify({"error": "No image URL provided"}), 400
-
-        # Fetch the image content
-        response = requests.get(image_url)
-        if response.status_code != 200:
-            return jsonify({"error": "Invalid image URL"}), 400
-
-        # Convert image bytes to a PIL image
-        image = Image.open(io.BytesIO(response.content)).convert("RGB")
-
-        # Run AI model
-        results = image_recognition(image)
-
-        return jsonify({"labels": results})
-
-    except Exception as e:
-        print(f"❌ Error in image recognition: {e}")
-        return jsonify({"error": str(e)}), 500
-
-@app.route("/api/stock-predictor", methods=["POST"])
-def stock_predictor():
-    try:
-        data = request.get_json()
-        stock_symbol = data.get("stock_symbol", "").upper()  # Ensure symbol is uppercase
-
-        if not stock_symbol:
-            return jsonify({"error": "No stock symbol provided"}), 400
-
-        stock = yf.Ticker(stock_symbol)
-        history = stock.history(period="1mo")
-
-        if history.empty:
-            return jsonify({"error": f"Invalid stock symbol: {stock_symbol} or no data available"}), 400
-
-        latest_price = history["Close"].iloc[-1]
-
-        return jsonify({"stock_symbol": stock_symbol, "latest_price": latest_price})
-
-    except Exception as e:
-        return jsonify({"error": str(e)}), 500
-
-@app.route("/api/object-detection", methods=["POST"])
-def detect_objects():
-    try:
-        data = request.get_json()
-        image_url = data.get("image_url", "")
-
-        if not image_url:
-            return jsonify({"error": "No image URL provided"}), 400
-
-        response = requests.get(image_url)
-        if response.status_code != 200:
-            return jsonify({"error": "Invalid image URL"}), 400
-
-        image = Image.open(io.BytesIO(response.content)).convert("RGB")
-        results = object_detection(image)
-        return jsonify({"labels": results})
-
-    except Exception as e:
-        print(f"❌ Error in object detection: {e}")
-        return jsonify({"error": str(e)}), 500
-
-@app.route("/api/face-recognition", methods=["POST"])
-def recognize_faces():
-    try:
-        data = request.get_json()
-        image_url = data.get("image_url", "")
-
-        if not image_url:
-            return jsonify({"error": "No image URL provided"}), 400
-
-        response = requests.get(image_url)
-        if response.status_code != 200:
-            return jsonify({"error": "Invalid image URL"}), 400
-
-        image = Image.open(io.BytesIO(response.content)).convert("RGB")
-
-        # Detect faces
-        boxes, _ = face_detection.detect(image)
-
-        if boxes is None:
-            return jsonify({"faces": []})  # No faces detected
-
-        results = [{"box": box.tolist()} for box in boxes]
-
-        return jsonify({"faces": results})
-
-    except Exception as e:
-        print(f"❌ Error in face recognition: {e}")
-        return jsonify({"error": str(e)}), 500
-
-@app.route("/api/ocr", methods=["POST"])
-def extract_text():
-    try:
-        data = request.get_json()
-        image_url = data.get("image_url", "")
-
-        if not image_url:
-            return jsonify({"error": "No image URL provided"}), 400
-
-        response = requests.get(image_url)
-        if response.status_code != 200:
-            return jsonify({"error": "Invalid image URL"}), 400
-
-        image = Image.open(io.BytesIO(response.content)).convert("RGB")
-        results = ocr_reader.readtext(image)
-        text_results = [entry[1] for entry in results]
-        return jsonify({"text": text_results})
-
-    except Exception as e:
-        print(f"❌ Error in OCR: {e}")
-        return jsonify({"error": str(e)}), 500
-
-# Full Project Data (All 9 Projects)
+# Project Data
 projects = [
     {
-        "id": "aws-cost-tracker",
-        "title": "AWS Cost Tracker",
-        "technologies": "Flask | DynamoDB | AWS Lambda",
-        "short_description": "Monitors AWS spending & sends alerts.",
-        "detailed_description": "A cloud-based tool that continuously monitors AWS usage costs, providing real-time alerts when spending exceeds budgeted limits.",
-        "commercial_use_case": "Useful for IT teams managing cloud budgets, ensuring cost efficiency and preventing unexpected overages."
+        "id": "aws-cost", "title": "AWS Cost Tracker", "technologies": "Flask | DynamoDB | AWS Lambda",
+     "short_description": "Monitors AWS spending & sends alerts.",
+     "detailed_description": "A cloud-based tool that continuously monitors AWS usage costs, providing real-time alerts when spending exceeds budgeted limits.",
+     "commercial_use_case": "Useful for IT teams managing cloud budgets, ensuring cost efficiency and preventing unexpected overages."
     },
     {
-        "id": "flask-resume-api",
-        "title": "Flask Resume API",
-        "technologies": "Flask | PostgreSQL",
-        "short_description": "Dynamically fetches and updates resume data.",
-        "detailed_description": "A REST API that allows dynamic updates and retrieval of resume details stored in a database.",
-        "commercial_use_case": "Ideal for job portals, recruiters, and professionals wanting a dynamically updated online resume."
+        "id": "flask-resume-api", "title": "Flask Resume API", "technologies": "Flask | PostgreSQL",
+     "short_description": "Dynamically fetches and updates resume data.",
+     "detailed_description": "A REST API that allows dynamic updates and retrieval of resume details stored in a database.",
+     "commercial_use_case": "Ideal for job portals, recruiters, and professionals wanting a dynamically updated online resume."
     },
     {
-        "id": "python-ai-assistant",
-        "title": "Python AI Assistant",
-        "technologies": "Flask | OpenAI API",
-        "short_description": "AI-powered responses and automation.",
-        "detailed_description": "A chatbot capable of answering technical and business-related questions using AI-generated responses.",
-        "commercial_use_case": "Useful for customer service automation, technical support, and AI-powered productivity tools."
+        "id": "it-compliance-auditor", "title": "IT Compliance Auditor", "technologies": "Flask | AWS Security Hub",
+     "short_description": "Scans AWS for compliance violations.",
+     "detailed_description": "Automatically evaluates AWS resources against compliance frameworks like CIS, NIST, and PCI-DSS.",
+     "commercial_use_case": "Helps security teams maintain AWS compliance and prevent security risks."
     },
     {
-        "id": "it-compliance-auditor",
-        "title": "IT Compliance Auditor",
-        "technologies": "Flask | AWS Security Hub",
-        "short_description": "Scans AWS for compliance violations.",
-        "detailed_description": "Automatically evaluates AWS resources against compliance frameworks like CIS, NIST, and PCI-DSS.",
-        "commercial_use_case": "Helps security teams maintain AWS compliance and prevent security risks."
-    },
-    {
-        "id": "infra-monitoring-dashboard",
-        "title": "Infrastructure Monitoring",
-        "technologies": "Flask | Dash | CloudWatch",
-        "short_description": "Real-time AWS resource monitoring.",
-        "detailed_description": "A web-based dashboard that visualizes AWS infrastructure performance metrics in real-time.",
-        "commercial_use_case": "Used by IT operations teams to monitor system health, detect anomalies, and optimize infrastructure performance."
+        "id": "infra-monitoring-dashboard", "title": "Infrastructure Monitoring", "technologies": "Flask | Dash | AWS CloudWatch",
+     "short_description": "Real-time AWS resource monitoring.",
+     "detailed_description": "A web-based dashboard that visualizes AWS infrastructure performance metrics in real-time.",
+     "commercial_use_case": "Used by IT operations teams to monitor system health, detect anomalies, and optimize infrastructure performance."
     },
     {
         "id": "log-analyzer",
         "title": "Log Analyzer & Error Tracker",
-        "technologies": "Flask | ELK Stack | Machine Learning",
+        "technologies": "Flask | ELK Stack",
         "short_description": "Detects system anomalies and logs errors.",
-        "detailed_description": "Utilizes machine learning to analyze system logs, detect patterns, and generate real-time alerts for critical failures.",
+        "detailed_description": "Analyzes system logs, detects patterns, and generates real-time alerts for critical failures.",
         "commercial_use_case": "Used by DevOps and IT support teams for proactive issue resolution and log management automation."
+    },
+    {
+        "id": "s3-file-manager",
+        "title": "S3 File Manager",
+        "technologies": "Flask | AWS S3 | Boto3",
+        "short_description": "Upload, delete, and manage files on S3.",
+        "detailed_description": "A web-based interface for managing files in Amazon S3, allowing users to upload, list, and delete objects from an S3 bucket.",
+        "commercial_use_case": "Useful for businesses managing static assets, backups, or large-scale file storage."
     },
     {
         "id": "serverless-chatbot",
@@ -293,7 +122,7 @@ projects = [
         "title": "Tkinter-based Desktop App",
         "technologies": "Tkinter | Flask API | SQLite",
         "short_description": "Local GUI app syncing with a Flask API.",
-        "detailed_description": "A Python desktop application with an intuitive graphical user interface (GUI) that syncs data with a Flask-powered API.",
+        "detailed_description": "A Python desktop application with an intuitive GUI that syncs data with a Flask-powered API.",
         "commercial_use_case": "Ideal for local inventory management, personal finance tracking, and offline applications that sync with the cloud."
     },
     {
@@ -306,43 +135,66 @@ projects = [
     }
 ]
 
-# 🏠 Homepage Route
+# 🏠 Homepage
 @app.route("/")
 def home():
     return render_template("index.html")
 
-# Ensure Flask serves static files (especially `scripts.js` and `styles.css`)
-@app.route('/static/<path:filename>')
-def static_files(filename):
-    return send_from_directory('static', filename)
-
-# 📂 Projects API Route - Fetch all projects
-@app.route("/api/projects", methods=["GET"])
-def get_projects():
-    return jsonify(projects)
-
-# 🔍 Projects API Route - Fetch specific project by ID
-@app.route("/api/projects/<project_id>", methods=["GET"])
-def get_project(project_id):
-    project = next((p for p in projects if p["id"] == project_id), None)
-    if not project:
-        return jsonify({"error": "Project not found"}), 404
-    return jsonify(project)
-
-# 🏗️ Projects Page
+# 📂 Projects List Page (Shows all projects as cards)
 @app.route("/projects")
 def projects_page():
     return render_template("projects.html", projects=projects)
+
+
+
+
+
+@app.route("/projects/<project_id>/page")
+def project_page(project_id):
+    """Serve the actual project page if the template exists and pass required data."""
+    
+    template_map = {
+        "aws-cost": "aws_cost_tracker.html",
+        "flask-resume-api": "flask_resume_api.html",
+        "it-compliance-auditor": "it_compliance_auditor.html",
+        "infra-monitoring-dashboard": "infra_monitoring_dashboard.html",
+        "log-analyzer": "log_analyzer.html",
+        "s3-file-manager": "s3_file_manager.html",
+        "serverless-chatbot": "serverless_chatbot.html",
+        "tkinter-desktop-app": "tkinter_desktop_app.html",
+        "flask-aws-deployment": "flask_aws_deployment.html"
+    }
+
+    template_name = template_map.get(project_id)
+    
+    if not template_name:
+        return "Project page not found", 404
+
+    # 🟢 Special case: AWS Cost Tracker requires cost data
+    if project_id == "aws-cost":
+        current_cost = get_aws_cost()
+        if current_cost is None:
+            return "Error retrieving AWS cost data."
+
+        alert_status = "✅ OK" if current_cost < 100 else "🚨 ALERT: Budget Exceeded!"
+        
+        return render_template(template_name, cost=current_cost, alert_status=alert_status)
+
+    # 🟢 For all other projects, just render the template
+    return render_template(template_name)
 
 # 📑 Deployment Documentation Page
 @app.route("/deployment-docs")
 def deployment_docs():
     return render_template("deployment_docs.html")
 
-# 📝 Individual Project Details Page
+# 🔍 Route for Specific Project Page
 @app.route("/projects/<project_id>")
 def project_detail(project_id):
-    return render_template("project_details.html")
+    project = next((p for p in projects if p["id"] == project_id), None)
+    if not project:
+        return "Project not found", 404
+    return render_template("project_details.html", project=project)
 
 # 📚 Knowledge Repository Route
 @app.route("/knowledge")
@@ -401,39 +253,6 @@ def get_github_commits():
         return jsonify(commits)
 
     except Exception as e:
-        return jsonify({"error": str(e)}), 500
-    
-# ✅ AI Tools Routes
-@app.route("/ai/text-summarizer")
-def text_summarizer_page():
-    return render_template("text_summarizer.html")
-
-@app.route("/ai/image-recognition")
-def image_recognition_page():
-    return render_template("image_recognition.html")
-
-@app.route("/ai/stock-predictor")
-def stock_predictor_page():
-    return render_template("stock_predictor.html")
-
-# ✅ AI Model: Load Free Text Summarizer (Hugging Face Model)
-summarizer = pipeline("summarization", model="facebook/bart-large-cnn")
-
-# ✅ AI API Route - Free Text Summarization
-@app.route("/api/summarize", methods=["POST"])
-def summarize_text_api():
-    try:
-        data = request.get_json()
-        text = data.get("text", "")
-
-        if not text:
-            return jsonify({"error": "No text provided"}), 400
-
-        summary = summarizer(text, max_length=130, min_length=30, do_sample=False)
-        return jsonify({"summary": summary[0]["summary_text"]})
-
-    except Exception as e:
-        print(f"❌ Error in text summarization: {e}")
         return jsonify({"error": str(e)}), 500
 
 # 🚀 Run Flask App

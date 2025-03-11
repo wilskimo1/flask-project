@@ -1,0 +1,16 @@
+{% extends "base.html" %}
+
+{% block title %}S3 File Manager - Will Robinson{% endblock %}
+
+{% block content %}
+<div class="container mt-5">
+    <h1 class="text-center">S3 File Manager</h1>
+    <p class="text-center">Upload, delete, and manage files on S3.</p>
+
+    <div class="text-center mt-4">
+        <a href="{{ url_for('project_detail', project_id='s3-file-manager') }}" class="btn btn-secondary">
+            ⬅️ Go Back to Project Details
+        </a>
+    </div>
+</div>
+{% endblock %}

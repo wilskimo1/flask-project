@@ -21,159 +21,6 @@ document.addEventListener("DOMContentLoaded", function () {
         console.error("❌ ERROR: Navbar elements NOT found!");
     }
 
-        // 🟢 AI Image Recognition Feature
-        const imageRecognizeButton = document.getElementById("recognize-btn");
-        const imageUploadButton = document.getElementById("upload-btn");
-        const objectDetectButton = document.getElementById("object-detect-btn");
-        const faceRecognizeButton = document.getElementById("face-recognize-btn");
-        const ocrButton = document.getElementById("ocr-btn");
-        const imageRecognitionResult = document.getElementById("image-recognition-result");
-        const previewImage = document.getElementById("preview-image");
-        const loadingIndicator = document.getElementById("loading");
-    
-        function fetchImageAnalysis(endpoint, method = "POST", bodyData = {}) {
-            loadingIndicator.style.display = "block";
-            imageRecognitionResult.innerHTML = "";
-    
-            fetch(endpoint, {
-                method: method,
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify(bodyData)
-            })
-            .then(response => response.json())
-            .then(data => {
-                loadingIndicator.style.display = "none";
-                if (data.labels || data.text || data.faces) {
-                    (data.labels || data.text || data.faces).forEach(item => {
-                        let listItem = document.createElement("li");
-                        listItem.classList.add("list-group-item");
-                        listItem.innerText = item.label || item.text || `Face detected with confidence ${(item.confidence * 100).toFixed(2)}%`;
-                        imageRecognitionResult.appendChild(listItem);
-                    });
-                } else {
-                    imageRecognitionResult.innerText = "⚠️ No results found.";
-                }
-            })
-            .catch(error => {
-                loadingIndicator.style.display = "none";
-                console.error("❌ Fetch error:", error);
-                imageRecognitionResult.innerText = "⚠️ Error processing request.";
-            });
-        }
-    
-        if (imageRecognizeButton) {
-            imageRecognizeButton.addEventListener("click", function () {
-                const imageUrl = document.getElementById("image-url").value;
-                if (!imageUrl) {
-                    alert("⚠️ Please enter an image URL.");
-                    return;
-                }
-                previewImage.src = imageUrl;
-                previewImage.style.display = "block";
-                fetchImageAnalysis("/api/image-recognition", "POST", { image_url: imageUrl });
-            });
-        }
-    
-        if (imageUploadButton) {
-            imageUploadButton.addEventListener("click", function () {
-                const fileInput = document.getElementById("image-file");
-                const file = fileInput.files[0];
-                if (!file) {
-                    alert("⚠️ Please upload an image file.");
-                    return;
-                }
-    
-                const formData = new FormData();
-                formData.append("image", file);
-    
-                loadingIndicator.style.display = "block";
-                previewImage.src = URL.createObjectURL(file);
-                previewImage.style.display = "block";
-                imageRecognitionResult.innerHTML = "";
-    
-                fetch("/api/image-upload", {
-                    method: "POST",
-                    body: formData
-                })
-                .then(response => response.json())
-                .then(data => {
-                    loadingIndicator.style.display = "none";
-                    if (data.labels) {
-                        data.labels.forEach(label => {
-                            let listItem = document.createElement("li");
-                            listItem.classList.add("list-group-item");
-                            listItem.innerText = `${label.label} (Confidence: ${(label.score * 100).toFixed(2)}%)`;
-                            imageRecognitionResult.appendChild(listItem);
-                        });
-                    } else {
-                        imageRecognitionResult.innerText = "⚠️ Error recognizing image.";
-                    }
-                })
-                .catch(error => {
-                    loadingIndicator.style.display = "none";
-                    console.error("❌ Upload error:", error);
-                    imageRecognitionResult.innerText = "⚠️ Failed to recognize image.";
-                });
-            });
-        }
-    
-        if (objectDetectButton) {
-            objectDetectButton.addEventListener("click", function () {
-                fetchImageAnalysis("/api/object-detection", "POST", { image_url: previewImage.src });
-            });
-        }
-    
-        if (faceRecognizeButton) {
-            faceRecognizeButton.addEventListener("click", function () {
-                fetchImageAnalysis("/api/face-recognition", "POST", { image_url: previewImage.src });
-            });
-        }
-    
-        if (ocrButton) {
-            ocrButton.addEventListener("click", function () {
-                fetchImageAnalysis("/api/ocr", "POST", { image_url: previewImage.src });
-            });
-        }
-    
-        // 🟢 AI Stock Price Prediction Feature
-        const stockPredictButton = document.getElementById("predict-btn");
-        const stockPredictionResult = document.getElementById("stock-prediction-result");
-    
-        if (stockPredictButton) {
-            console.log("📈 Stock prediction feature initialized!");
-    
-            stockPredictButton.addEventListener("click", function () {
-                console.log("🟢 Predict button clicked!");
-    
-                const stockSymbol = document.getElementById("stock-symbol").value.trim().toUpperCase();
-    
-                if (!stockSymbol) {
-                    alert("⚠️ Please enter a stock symbol.");
-                    return;
-                }
-    
-                fetch("/api/stock-predictor", {
-                    method: "POST",
-                    headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({ stock_symbol: stockSymbol })
-                })
-                .then(response => response.json())
-                .then(data => {
-                    if (data.latest_price) {
-                        stockPredictionResult.innerHTML = `<strong>${data.stock_symbol}</strong>: $${data.latest_price.toFixed(2)}`;
-                        console.log("✅ Stock price received:", data.latest_price);
-                    } else {
-                        stockPredictionResult.innerText = `⚠️ ${data.error}`;
-                        console.error("❌ Error:", data);
-                    }
-                })
-                .catch(error => {
-                    stockPredictionResult.innerText = "⚠️ Failed to fetch stock price.";
-                    console.error("❌ Fetch error:", error);
-                });
-            });
-        }
-
     // 🟢 Fetch all projects for Projects Page
     const projectsContainer = document.getElementById("projects-container");
     if (projectsContainer) {
@@ -185,10 +32,10 @@ document.addEventListener("DOMContentLoaded", function () {
                 projects.forEach(project => {
                     projectsContainer.innerHTML += `
                         <div class="col-md-4 mb-4">
-                            <a href="/projects/${project.id}" class="project-link">
-                                <div class="card project-card">
+                            <a href="/projects/${project.id}" class="text-decoration-none text-dark">
+                                <div class="card project-card shadow-sm">
                                     <div class="card-body">
-                                        <h3>${project.title}</h3>
+                                        <h3 class="card-title">${project.title}</h3>
                                         <p><strong>Technologies:</strong> ${project.technologies}</p>
                                         <p>${project.short_description}</p>
                                         <button class="btn btn-outline-primary mt-2">Learn More</button>
@@ -316,45 +163,5 @@ document.addEventListener("DOMContentLoaded", function () {
         document.body.appendChild(script);
 
         console.log("✅ AWS Certifications loaded successfully!");
-    }
-    // 🟢 AI Text Summarization Feature
-    const summarizeButton = document.getElementById("summarize-btn");
-    const summaryResult = document.getElementById("summary-result");
-
-    if (summarizeButton) {
-        console.log("📄 Summarization feature initialized!");
-        
-        summarizeButton.addEventListener("click", function () {
-            console.log("🟢 Summarize button clicked!");
-
-            const textInput = document.getElementById("text-input").value;
-
-            if (!textInput) {
-                alert("⚠️ Please enter some text to summarize.");
-                return;
-            }
-
-            fetch("/api/summarize", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ text: textInput })
-            })
-            .then(response => response.json())
-            .then(data => {
-                if (data.summary) {
-                    summaryResult.innerText = data.summary;
-                    console.log("✅ Summary received:", data.summary);
-                } else {
-                    summaryResult.innerText = "⚠️ Error generating summary.";
-                    console.error("❌ Error:", data);
-                }
-            })
-            .catch(error => {
-                summaryResult.innerText = "⚠️ Failed to summarize text.";
-                console.error("❌ Fetch error:", error);
-            });
-        });
-    } else {
-        console.warn("⚠️ Summarize button NOT found in the DOM!");
     }
 });

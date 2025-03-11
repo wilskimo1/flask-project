@@ -1,0 +1,16 @@
+{% extends "base.html" %}
+
+{% block title %}Infrastructure Monitoring Dashboard - Will Robinson{% endblock %}
+
+{% block content %}
+<div class="container mt-5">
+    <h1 class="text-center">Infrastructure Monitoring Dashboard</h1>
+    <p class="text-center">Real-time AWS resource monitoring.</p>
+
+    <div class="text-center mt-4">
+        <a href="{{ url_for('project_detail', project_id='infra-monitoring-dashboard') }}" class="btn btn-secondary">
+            ⬅️ Go Back to Project Details
+        </a>
+    </div>
+</div>
+{% endblock %}

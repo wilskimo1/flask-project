@@ -1,0 +1,16 @@
+{% extends "base.html" %}
+
+{% block title %}Tkinter Desktop App - Will Robinson{% endblock %}
+
+{% block content %}
+<div class="container mt-5">
+    <h1 class="text-center">Tkinter Desktop App</h1>
+    <p class="text-center">Local GUI app syncing with a Flask API.</p>
+
+    <div class="text-center mt-4">
+        <a href="{{ url_for('project_detail', project_id='tkinter-desktop-app') }}" class="btn btn-secondary">
+            ⬅️ Go Back to Project Details
+        </a>
+    </div>
+</div>
+{% endblock %}

@@ -4,28 +4,22 @@
 
 {% block content %}
 <div class="container mt-5">
-    <h1 id="project-title" class="text-center"></h1>
-    <p id="project-technologies" class="text-center"><strong>Technologies Used:</strong></p>
+    <h1 class="text-center">{{ project.title }}</h1>
+    <p class="text-center"><strong>Technologies Used:</strong> {{ project.technologies }}</p>
 
     <div class="row justify-content-center">
         <div class="col-lg-8">
             <h3>Project Overview</h3>
-            <p id="project-description"></p>
+            <p>{{ project.detailed_description }}</p>
 
             <h3>Commercial Use Case</h3>
-            <p id="project-use-case"></p>
+            <p>{{ project.commercial_use_case }}</p>
 
-            <!-- Show Deployment Guide link only for Flask AWS Deployment project -->
-            <div id="deployment-guide" class="text-center mt-4" style="display: none;">
-                <a href="{{ url_for('deployment_docs') }}" class="btn btn-info">Read Full Deployment Guide</a>
+            <div class="text-center mt-4">
+                <a href="/projects" class="btn btn-secondary">Back to Project List</a>
+                <a href="/projects/{{ project.id }}/page" class="btn btn-primary">View Project</a>
             </div>
-
-            <a href="{{ url_for('projects_page') }}" class="btn btn-primary mt-3">Back to Projects</a>
         </div>
     </div>
 </div>
-
-<!-- Include script to fetch project details -->
-<script defer src="{{ url_for('static', filename='js/script.js') }}"></script>
-
 {% endblock %}

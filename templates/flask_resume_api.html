@@ -1,0 +1,16 @@
+{% extends "base.html" %}
+
+{% block title %}Flask Resume API - Will Robinson{% endblock %}
+
+{% block content %}
+<div class="container mt-5">
+    <h1 class="text-center">Flask Resume API</h1>
+    <p class="text-center">Dynamically fetches and updates resume data.</p>
+
+    <div class="text-center mt-4">
+        <a href="{{ url_for('project_detail', project_id='flask-resume-api') }}" class="btn btn-secondary">
+            ⬅️ Go Back to Project Details
+        </a>
+    </div>
+</div>
+{% endblock %}

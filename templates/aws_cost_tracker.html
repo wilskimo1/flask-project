@@ -11,5 +11,11 @@
         <h3>Current AWS Spend: ${{ cost }}</h3>
         <h4 class="{{ 'text-danger' if cost > 100 else 'text-success' }}">{{ alert_status }}</h4>
     </div>
+     <!-- 🏆 Go Back Button -->
+     <div class="text-center mt-4">
+        <a href="{{ url_for('project_detail', project_id='aws-cost') }}" class="btn btn-secondary">
+            ⬅️ Go Back to Project Details
+        </a>
+    </div>
 </div>
 {% endblock %}

@@ -5,11 +5,25 @@
 {% block content %}
 <div class="container mt-5">
     <h1 class="text-center mb-4">My Projects</h1>
-    <p class="lead text-center">Explore my work in cloud computing, automation, and AI-driven applications.</p>
+    <p class="lead text-center">Explore my work in cloud computing, automation, and AWS-based applications.</p>
 
-    <div id="projects-container" class="row">
-        <!-- Projects will be dynamically loaded here -->
+    <div class="row">
+        {% for project in projects %}
+        <div class="col-md-4 mb-4">
+            <a href="/projects/{{ project.id }}" class="text-decoration-none text-dark">
+                <div class="card project-card shadow-sm">
+                    <div class="card-body">
+                        <h3 class="card-title">{{ project.title }}</h3>
+                        <p><strong>Technologies:</strong> {{ project.technologies }}</p>
+                        <p>{{ project.short_description }}</p>
+                        <button class="btn btn-outline-primary mt-2">Learn More</button>
+                    </div>
+                </div>
+            </a>
+        </div>
+        {% endfor %}
     </div>
+</div>
 
     <!-- 🟢 GitHub Commits Section -->
     <div class="container mt-5">
