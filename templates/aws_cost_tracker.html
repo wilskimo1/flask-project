@@ -6,7 +6,7 @@
 <div class="container mt-5">
     <h1 class="text-center">AWS Cost Tracker</h1>
     <p class="text-center">Track your AWS spending and stay within budget.</p>
-
+    
     <div class="text-center mt-4">
         <h3>Current AWS Spend: ${{ cost }}</h3>
         <h4 class="{{ 'text-danger' if cost > 100 else 'text-success' }}">{{ alert_status }}</h4>

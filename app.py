@@ -1,7 +1,25 @@
-from flask import Flask, render_template, jsonify, send_from_directory
-import os, random, requests, boto3, json
+from flask import Flask, render_template, jsonify, send_from_directory, request, redirect, url_for
+import os, random, requests, boto3, json, datetime
+from flask_login import LoginManager, UserMixin, login_user, login_required, logout_user, current_user
+import config  # Import your secure credentials (if using config.py)
+
 
 app = Flask(__name__)
+app.config['TEMPLATES_AUTO_RELOAD'] = True
+
+app.secret_key = os.urandom(24)  
+
+login_manager = LoginManager()
+login_manager.init_app(app)
+login_manager.login_view = "login"
+
+# AWS Configuration (Assuming credentials are stored in Secrets Manager)
+AWS_REGION = "us-east-1"
+DYNAMODB_TABLE_NAME = "resume_data"
+
+# Initialize DynamoDB client
+dynamodb = boto3.resource("dynamodb", region_name=AWS_REGION)
+table = dynamodb.Table(DYNAMODB_TABLE_NAME)
 
 # Directory for knowledge repository documents
 KNOWLEDGE_REPO_DIR = "static/knowledge_docs"
@@ -40,12 +58,16 @@ ce_client = boto3.client(
     region_name="us-east-1"
 )
 
-# 🔹 Function to fetch AWS cost data
+# 🔹 Function to fetch AWS cost data (Fixed for dynamic dates)
 def get_aws_cost():
     """Retrieve AWS cost data from Cost Explorer."""
     try:
+        today = datetime.date.today()
+        start_date = today.replace(day=1).strftime("%Y-%m-%d")  # First day of this month
+        end_date = today.strftime("%Y-%m-%d")  # Today
+
         response = ce_client.get_cost_and_usage(
-            TimePeriod={"Start": "2024-03-01", "End": "2024-03-31"},
+            TimePeriod={"Start": start_date, "End": end_date},
             Granularity="MONTHLY",
             Metrics=["BlendedCost"]
         )
@@ -55,17 +77,55 @@ def get_aws_cost():
         print(f"❌ Error fetching cost data: {e}")
         return None
 
-# 📂 AWS Cost Tracker Route
-@app.route("/aws-cost")
-def aws_cost():
+# 📂 AWS Cost Tracker Route (Updated template name)
+@app.route("/aws-cost-tracker")
+def aws_cost_tracker():
     """Display AWS cost data in UI."""
     current_cost = get_aws_cost()
-    if current_cost is None:
-        return "Error retrieving AWS cost data."
-
-    alert_status = "✅ OK" if current_cost < 100 else "🚨 ALERT: Budget Exceeded!"
     
-    return render_template("aws-cost.html", cost=current_cost, alert_status=alert_status)
+    if current_cost is None:
+        alert_status = "⚠️ Unable to retrieve AWS cost data."
+        current_cost = "N/A"
+    elif current_cost > 100:
+        alert_status = "🚨 ALERT: Budget Exceeded!"
+    else:
+        alert_status = "✅ OK - Currently within Budget"
+
+    #print(f"🖥️ Debug: Cost = {current_cost}, Alert Status = {alert_status}")  # Debugging Output
+
+    return render_template("aws_cost_tracker.html", cost=current_cost, alert_status=alert_status)
+
+
+class User(UserMixin):
+    def __init__(self, id):
+        self.id = id
+
+@login_manager.user_loader
+def load_user(user_id):
+    return User(user_id)
+
+# 🔒 Admin Login Route
+@app.route("/login", methods=["GET", "POST"])
+def login():
+    if request.method == "POST":
+        username = request.form["username"]
+        password = request.form["password"]
+
+        if username == config.ADMIN_USERNAME and password == config.ADMIN_PASSWORD:
+            user = User(id=username)
+            login_user(user)
+            return redirect(url_for("resume_page"))  # Redirect to resume page
+
+        return "Invalid credentials. Try again."
+
+    return render_template("login.html")
+
+# 🔓 Logout Route
+@app.route("/logout")
+@login_required
+def logout():
+    logout_user()
+    return redirect(url_for("resume_page"))
 
 # Project Data
 projects = [
@@ -145,10 +205,6 @@ def home():
 def projects_page():
     return render_template("projects.html", projects=projects)
 
-
-
-
-
 @app.route("/projects/<project_id>/page")
 def project_page(project_id):
     """Serve the actual project page if the template exists and pass required data."""
@@ -166,22 +222,26 @@ def project_page(project_id):
     }
 
     template_name = template_map.get(project_id)
-    
+
     if not template_name:
         return "Project page not found", 404
 
-    # 🟢 Special case: AWS Cost Tracker requires cost data
+    # 🟢 Fix: AWS Cost Tracker uses the latest message format
     if project_id == "aws-cost":
         current_cost = get_aws_cost()
         if current_cost is None:
             return "Error retrieving AWS cost data."
 
-        alert_status = "✅ OK" if current_cost < 100 else "🚨 ALERT: Budget Exceeded!"
-        
+        if current_cost > 100:
+            alert_status = "🚨 ALERT: Budget Exceeded!"
+        else:
+            alert_status = "✅ OK - Currently within Budget"  # Updated message!
+
         return render_template(template_name, cost=current_cost, alert_status=alert_status)
 
     # 🟢 For all other projects, just render the template
     return render_template(template_name)
+
 
 # 📑 Deployment Documentation Page
 @app.route("/deployment-docs")
@@ -254,6 +314,44 @@ def get_github_commits():
 
     except Exception as e:
         return jsonify({"error": str(e)}), 500
+
+# 📌 Fetch Resume API
+@app.route("/api/resume", methods=["GET"])
+def get_resume():
+    """Fetch resume details from DynamoDB."""
+    try:
+        response = table.get_item(Key={"user_id": "1"})  # Hardcoded user_id for now
+        if "Item" in response:
+            return jsonify(response["Item"])
+        else:
+            return jsonify({"error": "No resume data found"}), 404
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+# 📌 Update Resume API
+@app.route("/api/resume", methods=["POST"])
+def update_resume():
+    """Update resume details in DynamoDB (Overwrite Existing Data)."""
+    data = request.json  # Get JSON payload from request
+
+    try:
+        table.put_item(
+            Item={
+                "user_id": "1",  # Ensures only one entry for this user
+                "name": data["name"],
+                "email": data["email"],
+                "phone": data["phone"],
+                "experience": data["experience"],
+                "skills": data["skills"]
+            }
+        )
+        return jsonify({"message": "Resume updated successfully!"})
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+@app.route("/resume")
+def resume_page():
+    return render_template("flask_resume_api.html", is_admin=current_user.is_authenticated)
 
 # 🚀 Run Flask App
 if __name__ == "__main__":
