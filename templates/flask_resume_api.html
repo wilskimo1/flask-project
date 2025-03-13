@@ -7,45 +7,45 @@
     <h1 class="text-center">Flask Resume API</h1>
     <p class="text-center">Dynamically fetches and updates resume data.</p>
 
-    <!-- Read-Only Resume View -->
+    <!-- ✅ Read-Only Resume View -->
     <div class="card p-4 mt-4">
         <h3 class="text-center">My Resume</h3>
-        <p><strong>Name:</strong> <span id="view_name"></span></p>
-        <p><strong>Email:</strong> <span id="view_email"></span></p>
-        <p><strong>Phone:</strong> <span id="view_phone"></span></p>
-        <p><strong>Experience:</strong> <span id="view_experience"></span></p>
-        <p><strong>Skills:</strong> <span id="view_skills"></span></p>
+        <p><strong>Name:</strong> <span id="view_name">Loading...</span></p>
+        <p><strong>Email:</strong> <span id="view_email">Loading...</span></p>
+        <p><strong>Phone:</strong> <span id="view_phone">Loading...</span></p>
+        <p><strong>Experience:</strong> <span id="view_experience">Loading...</span></p>
+        <p><strong>Skills:</strong> <span id="view_skills">Loading...</span></p>
     </div>
 
     {% if is_admin %}
-    <!-- Admin Edit Form -->
+    <!-- ✅ Admin Edit Form -->
     <div class="card p-4 mt-4">
         <h3 class="text-center">Edit Resume</h3>
 
         <form id="resumeForm">
             <div class="mb-3">
                 <label class="form-label">Name</label>
-                <input type="text" id="name" class="form-control" required>
+                <input type="text" id="name" class="form-control">
             </div>
 
             <div class="mb-3">
                 <label class="form-label">Email</label>
-                <input type="email" id="email" class="form-control" required>
+                <input type="email" id="email" class="form-control">
             </div>
 
             <div class="mb-3">
                 <label class="form-label">Phone</label>
-                <input type="text" id="phone" class="form-control" required>
+                <input type="text" id="phone" class="form-control">
             </div>
 
             <div class="mb-3">
                 <label class="form-label">Experience</label>
-                <textarea id="experience" class="form-control" required></textarea>
+                <textarea id="experience" class="form-control"></textarea>
             </div>
 
             <div class="mb-3">
                 <label class="form-label">Skills</label>
-                <input type="text" id="skills" class="form-control" required>
+                <input type="text" id="skills" class="form-control">
             </div>
 
             <button type="submit" class="btn btn-primary">Save Resume</button>
@@ -58,13 +58,15 @@
         <a href="{{ url_for('logout') }}" class="btn btn-danger">🚪 Logout</a>
     </div>
     {% else %}
-    <!-- Show Login Button for Visitors -->
+    <!-- ✅ Show Login Button for Visitors -->
     <div class="text-center mt-4">
-        <a href="{{ url_for('login') }}" class="btn btn-warning">🔑 Login to Edit Resume</a>
+        <a href="{{ url_for('login', next=url_for('flask_resume_api.resume_page')) }}" class="btn btn-warning">
+            🔑 Login to Edit Resume
+        </a>        
     </div>
     {% endif %}
 
-    <!-- Go Back Button -->
+    <!-- 🔙 Go Back Button -->
     <div class="text-center mt-4">
         <a href="{{ url_for('project_detail', project_id='flask-resume-api') }}" class="btn btn-secondary">
             ⬅️ Go Back to Project Details
@@ -77,25 +79,67 @@ document.addEventListener("DOMContentLoaded", function () {
     fetchResumeData();
 
     function fetchResumeData() {
-        fetch("/api/resume")
+        fetch("/resume/api/resume")
             .then(response => response.json())
             .then(data => {
                 if (!data.error) {
-                    document.getElementById("view_name").textContent = data.name;
-                    document.getElementById("view_email").textContent = data.email;
-                    document.getElementById("view_phone").textContent = data.phone;
-                    document.getElementById("view_experience").textContent = data.experience;
-                    document.getElementById("view_skills").textContent = data.skills;
+                    // ✅ Update Read-Only View
+                    document.getElementById("view_name").textContent = data.name || "N/A";
+                    document.getElementById("view_email").textContent = data.email || "N/A";
+                    document.getElementById("view_phone").textContent = data.phone || "N/A";
+                    document.getElementById("view_experience").textContent = data.experience || "N/A";
+                    document.getElementById("view_skills").textContent = data.skills || "N/A";
 
-                    document.getElementById("name").value = data.name;
-                    document.getElementById("email").value = data.email;
-                    document.getElementById("phone").value = data.phone;
-                    document.getElementById("experience").value = data.experience;
-                    document.getElementById("skills").value = data.skills;
+                    // ✅ Update Admin Form (if Admin)
+                    const nameField = document.getElementById("name");
+                    if (nameField) {
+                        document.getElementById("name").value = data.name;
+                        document.getElementById("email").value = data.email;
+                        document.getElementById("phone").value = data.phone;
+                        document.getElementById("experience").value = data.experience;
+                        document.getElementById("skills").value = data.skills;
+                    }
                 }
             })
-            .catch(error => console.error("Error fetching resume:", error));
+            .catch(error => console.error("❌ Error fetching resume:", error));
     }
+
+    document.getElementById("resumeForm")?.addEventListener("submit", function (event) {
+        event.preventDefault();
+
+        const updatedData = {};
+
+        function addIfChanged(id, key, originalValue) {
+            const field = document.getElementById(id);
+            if (field.value.trim() !== originalValue) {
+                updatedData[key] = field.value;
+            }
+        }
+
+        addIfChanged("name", "name", document.getElementById("view_name").textContent);
+        addIfChanged("email", "email", document.getElementById("view_email").textContent);
+        addIfChanged("phone", "phone", document.getElementById("view_phone").textContent);
+        addIfChanged("experience", "experience", document.getElementById("view_experience").textContent);
+        addIfChanged("skills", "skills", document.getElementById("view_skills").textContent);
+
+        if (Object.keys(updatedData).length === 0) {
+            alert("No changes detected.");
+            return;
+        }
+
+        fetch("/resume/api/resume", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(updatedData)
+        })
+        .then(response => response.json())
+        .then(data => {
+            document.getElementById("statusMessage").textContent = data.message;
+            fetchResumeData(); // ✅ Refresh data after update
+        })
+        .catch(error => console.error("❌ Error updating resume:", error));
+    });
 });
 </script>
+
 {% endblock %}

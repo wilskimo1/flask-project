@@ -7,10 +7,97 @@
     <h1 class="text-center">IT Compliance Auditor</h1>
     <p class="text-center">Scans AWS for compliance violations.</p>
 
+    {% if is_admin %}
+    <!-- Compliance Scan Results -->
+    <div class="card p-4 mt-4">
+        <h3 class="text-center">AWS Compliance Findings</h3>
+        <p class="text-center">Detected violations and security risks.</p>
+
+        <div id="complianceResults">
+            <p class="text-center">Loading compliance findings...</p>
+        </div>
+    </div>
+
+    <div class="text-center mt-4">
+        <button id="refreshCompliance" class="btn btn-primary">🔄 Refresh Compliance Report</button>
+    </div>
+
+    <div class="text-center mt-4">
+        <a href="{{ url_for('logout') }}" class="btn btn-danger">🚪 Logout</a>
+    </div>
+    {% else %}
+    <div class="text-center mt-4">
+        <!-- ✅ Ensure proper redirect after login -->
+        <a href="{{ url_for('login', next=url_for('it_compliance_auditor.compliance_page')) }}" class="btn btn-warning">
+            🔑 Login to View Compliance Reports
+        </a>
+    </div>
+    {% endif %}
+
+    <!-- Go Back Button -->
     <div class="text-center mt-4">
         <a href="{{ url_for('project_detail', project_id='it-compliance-auditor') }}" class="btn btn-secondary">
             ⬅️ Go Back to Project Details
         </a>
     </div>
 </div>
+
+<script>
+document.addEventListener("DOMContentLoaded", function () {
+    document.getElementById("refreshCompliance")?.addEventListener("click", fetchComplianceData);
+    fetchComplianceData(); // Auto-fetch on load
+
+    function fetchComplianceData() {
+        fetch("/it-compliance/api/compliance")
+            .then(response => response.json())
+            .then(data => {
+                const resultsDiv = document.getElementById("complianceResults");
+                resultsDiv.innerHTML = ""; // Clear previous results
+
+                if (data.length === 0 || data.error) {
+                    resultsDiv.innerHTML = "<p class='text-center text-success'>✅ No active compliance violations detected!</p>";
+                    return;
+                }
+
+                let tableHtml = `
+                    <table class="table table-striped">
+                        <thead>
+                            <tr>
+                                <th>Title</th>
+                                <th>Severity</th>
+                                <th>Resource</th>
+                                <th>Description</th>
+                                <th>Recommendation</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                `;
+
+                data.forEach(finding => {
+                    let severityClass = finding.severity === "CRITICAL" ? "text-danger fw-bold" : 
+                                        finding.severity === "HIGH" ? "text-warning fw-bold" : 
+                                        "text-success";
+                    
+                    tableHtml += `
+                        <tr>
+                            <td>${finding.title}</td>
+                            <td class="${severityClass}">${finding.severity}</td>
+                            <td>${finding.resource}</td>
+                            <td>${finding.description}</td>
+                            <td>${finding.recommendation}</td>
+                        </tr>
+                    `;
+                });
+
+                tableHtml += "</tbody></table>";
+                resultsDiv.innerHTML = tableHtml;
+            })
+            .catch(error => {
+                console.error("Error fetching compliance findings:", error);
+                document.getElementById("complianceResults").innerHTML = "<p class='text-danger'>❌ Error loading compliance data.</p>";
+            });
+    }
+});
+</script>
+
 {% endblock %}

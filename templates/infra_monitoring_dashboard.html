@@ -7,10 +7,65 @@
     <h1 class="text-center">Infrastructure Monitoring Dashboard</h1>
     <p class="text-center">Real-time AWS resource monitoring.</p>
 
+    {% if is_admin %}
+    <!-- Monitoring Dashboard -->
+    <div class="card p-4 mt-4">
+        <h3 class="text-center">EC2 CPU Utilization</h3>
+        <p class="text-center">Current AWS resource usage.</p>
+
+        <div id="monitoringResults">
+            <p class="text-center">Loading monitoring data...</p>
+        </div>
+    </div>
+
+    <div class="text-center mt-4">
+        <button id="refreshMonitoring" class="btn btn-primary">🔄 Refresh Data</button>
+    </div>
+
+    <div class="text-center mt-4">
+        <a href="{{ url_for('logout') }}" class="btn btn-danger">🚪 Logout</a>
+    </div>
+    {% else %}
+    <div class="text-center mt-4">
+        <a href="{{ url_for('login', next=url_for('infra_monitoring.monitoring_dashboard')) }}" class="btn btn-warning">
+            🔑 Login to View Monitoring Data
+        </a>
+    </div>
+    {% endif %}
+
+    <!-- Go Back Button -->
     <div class="text-center mt-4">
         <a href="{{ url_for('project_detail', project_id='infra-monitoring-dashboard') }}" class="btn btn-secondary">
             ⬅️ Go Back to Project Details
         </a>
     </div>
 </div>
+
+<script>
+document.addEventListener("DOMContentLoaded", function () {
+    document.getElementById("refreshMonitoring")?.addEventListener("click", fetchMonitoringData);
+    fetchMonitoringData(); // Auto-fetch on load
+
+    function fetchMonitoringData() {
+        fetch("/infra-monitoring/api/monitoring")
+            .then(response => response.json())
+            .then(data => {
+                const resultsDiv = document.getElementById("monitoringResults");
+                resultsDiv.innerHTML = ""; // Clear previous results
+
+                if (data.error) {
+                    resultsDiv.innerHTML = "<p class='text-danger'>❌ Error loading monitoring data.</p>";
+                    return;
+                }
+
+                resultsDiv.innerHTML = `<p class="text-center text-primary">📊 CPU Utilization: <strong>${data.cpu_utilization}%</strong></p>`;
+            })
+            .catch(error => {
+                console.error("Error fetching monitoring data:", error);
+                document.getElementById("monitoringResults").innerHTML = "<p class='text-danger'>❌ Error loading monitoring data.</p>";
+            });
+    }
+});
+</script>
+
 {% endblock %}

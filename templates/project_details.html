@@ -17,7 +17,11 @@
 
             <div class="text-center mt-4">
                 <a href="/projects" class="btn btn-secondary">Back to Project List</a>
-                <a href="/projects/{{ project.id }}/page" class="btn btn-primary">View Project</a>
+
+                <!-- Ensure every project goes directly to its page without login -->
+                <a href="{{ url_for('project_page', project_id=project.id) }}" class="btn btn-primary">
+                    🔍 View Project
+                </a>
             </div>
         </div>
     </div>
