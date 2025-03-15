@@ -39,14 +39,19 @@ from projects.aws_cost_tracker import aws_cost_tracker_bp
 from projects.flask_resume_api import flask_resume_api_bp
 from projects.it_compliance_auditor import it_compliance_auditor_bp
 from projects.infra_monitoring import infra_monitoring_bp
+from projects.s3_file_manager import s3_file_manager_bp  # ✅ Import S3 File Manager
+from projects.chatbot import chatbot_bp
+from projects.weather_application import weather_bp
+
 
 # Register Blueprints
 app.register_blueprint(aws_cost_tracker_bp, url_prefix="/aws-cost")
 app.register_blueprint(flask_resume_api_bp, url_prefix="/resume")
 app.register_blueprint(it_compliance_auditor_bp, url_prefix="/it-compliance")
 app.register_blueprint(infra_monitoring_bp, url_prefix="/infra-monitoring")
-
-
+app.register_blueprint(s3_file_manager_bp, url_prefix="/")
+app.register_blueprint(chatbot_bp, url_prefix="/api")
+app.register_blueprint(weather_bp, url_prefix="/weather")
 
 # Directory for knowledge repository documents
 KNOWLEDGE_REPO_DIR = "static/knowledge_docs"
@@ -89,6 +94,9 @@ def login():
                 if "/projects/flask-resume-api/page" in next_page:
                     return redirect(url_for("flask_resume_api.resume_page"))  # ✅ Redirect to resume
 
+                if "/projects/s3-file-manager/page" in next_page:
+                    return redirect(url_for("s3_file_manager.s3_dashboard"))  # ✅ Redirect to S3 File Manager
+
                 return redirect(next_page)  # ✅ Default redirect to requested page
             
             return redirect(url_for("projects_page"))  # ✅ Default to projects list if no next_page
@@ -96,6 +104,7 @@ def login():
         return "Invalid credentials. Try again."
 
     return render_template("login.html", next_page=next_page)
+
 
 
 # 🔓 Logout Route
@@ -135,7 +144,7 @@ projects = [
         "id": "log-analyzer",
         "title": "Log Analyzer & Error Tracker",
         "technologies": "Flask | ELK Stack",
-        "short_description": "Detects system anomalies and logs errors.",
+        "short_description": "This Project was removed.",
         "detailed_description": "Analyzes system logs, detects patterns, and generates real-time alerts for critical failures.",
         "commercial_use_case": "Used by DevOps and IT support teams for proactive issue resolution and log management automation."
     },
@@ -156,12 +165,12 @@ projects = [
         "commercial_use_case": "Useful for customer support automation, business FAQs, and internal HR chatbots."
     },
     {
-        "id": "tkinter-desktop-app",
-        "title": "Tkinter-based Desktop App",
-        "technologies": "Tkinter | Flask API | SQLite",
-        "short_description": "Local GUI app syncing with a Flask API.",
-        "detailed_description": "A Python desktop application with an intuitive GUI that syncs data with a Flask-powered API.",
-        "commercial_use_case": "Ideal for local inventory management, personal finance tracking, and offline applications that sync with the cloud."
+        "id": "weather-dashboard",
+        "title": "Interactive Weather Reporting Dashboard",
+        "technologies": "Flask | OpenWeather API | JavaScript | Bootstrap",
+        "short_description": "A dynamic web-based dashboard for real-time weather updates.",
+        "detailed_description": "This weather dashboard fetches and displays real-time weather data using the OpenWeather API. Users can search for cities, view current conditions, and access a five-day forecast with temperature, humidity, and wind details. The dashboard features an interactive UI with automatic data refresh and location-based weather retrieval.",
+        "commercial_use_case": "Ideal for travel planning, outdoor event management, and integrating into smart home weather monitoring solutions."
     },
     {
         "id": "flask-aws-deployment",
@@ -196,10 +205,9 @@ def project_page(project_id):
         "flask-resume-api": "flask_resume_api.html",
         "it-compliance-auditor": "it_compliance_auditor.html",
         "infra-monitoring-dashboard": "infra_monitoring_dashboard.html",
-        "log-analyzer": "log_analyzer.html",
         "s3-file-manager": "s3_file_manager.html",
         "serverless-chatbot": "serverless_chatbot.html",
-        "tkinter-desktop-app": "tkinter_desktop_app.html",
+        "weather-dashboard": "weather_dashboard.html",  # ✅ Added Weather Dashboard
         "flask-aws-deployment": "flask_aws_deployment.html"
     }
 

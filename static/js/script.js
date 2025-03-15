@@ -1,7 +1,12 @@
 document.addEventListener("DOMContentLoaded", function () {
     console.log("✅ Script.js loaded successfully!");
 
-    // 🟢 Navbar Toggle 
+    const fetchWeatherBtn = document.getElementById("fetch-weather-btn");
+
+    let eventListenersAttached = false; // Track if listeners are attached
+    let isSending = false; // Prevent duplicate requests
+
+    // 🟢 Navbar Toggle
     const navbarToggler = document.querySelector(".navbar-toggler");
     const navbarCollapse = document.getElementById("navbarNav");
 
@@ -113,7 +118,7 @@ document.addEventListener("DOMContentLoaded", function () {
             });
     }
 
-    // 🟢 Fetch Random Number 
+    // 🟢 Fetch Random Number
     const randomButton = document.querySelector("#random-btn");
     const resultDisplay = document.querySelector("#random-result");
 
@@ -164,4 +169,171 @@ document.addEventListener("DOMContentLoaded", function () {
 
         console.log("✅ AWS Certifications loaded successfully!");
     }
+
+    // 🟢 S3 File Manager Functions
+    function fetchFiles() {
+        fetch("/api/s3/list")
+            .then(response => response.json())
+            .then(data => console.log("✅ S3 Files Fetched:", data))
+            .catch(error => console.error("❌ Error fetching S3 files:", error));
+    }
+
+    function uploadFile() {
+        let file = document.getElementById("fileInput").files[0];
+        let formData = new FormData();
+        formData.append("file", file);
+
+        fetch("/api/s3/upload", { method: "POST", body: formData })
+            .then(response => response.json())
+            .then(data => console.log("✅ File uploaded:", data))
+            .catch(error => console.error("❌ Error uploading file:", error));
+    }
+
+    function deleteFile(fileName) {
+        fetch("/api/s3/delete", {
+            method: "POST",
+            body: JSON.stringify({ file_name: fileName }),
+            headers: { "Content-Type": "application/json" }
+        })
+            .then(response => response.json())
+            .then(data => console.log("✅ File deleted:", data))
+            .catch(error => console.error("❌ Error deleting file:", error));
+    }
+
+    if (window.location.pathname === "/s3-file-manager") {
+        fetchFiles();
+    }
+    // 🟢 Serverless Chatbot Integration (Prevent Duplicates)
+    function sendMessage() {
+        if (isSending) return; // Prevent duplicate submissions
+        isSending = true;
+
+        let userInputField = document.getElementById("user-input");
+        let userInput = userInputField.value.trim();
+
+        if (!userInput) {
+            isSending = false;
+            return;
+        }
+
+        let chatBox = document.getElementById("chat-box");
+
+        // ✅ Display user message
+        chatBox.innerHTML += `<div><strong>You:</strong> ${userInput}</div>`;
+
+        // ✅ Send request to Flask API
+        fetch("/api/chatbot", {
+            method: "POST",
+            body: JSON.stringify({ message: userInput }),
+            headers: { "Content-Type": "application/json" }
+        })
+        .then(response => response.json())
+        .then(data => {
+            console.log("📡 Chatbot API Response:", data);
+
+            if (data && data.response) {
+                chatBox.innerHTML += `<div><strong>Bot:</strong> ${data.response}</div>`;
+            } else {
+                chatBox.innerHTML += `<div><strong>Error:</strong> No response from chatbot.</div>`;
+            }
+
+            chatBox.scrollTop = chatBox.scrollHeight; // Auto-scroll to latest message
+            userInputField.value = ""; // Clear input field
+            isSending = false; // Allow new messages
+        })
+        .catch(error => {
+            console.error("❌ Fetch Error:", error);
+            chatBox.innerHTML += `<div><strong>Error:</strong> Failed to connect to chatbot.</div>`;
+            isSending = false;
+        });
+    }
+
+    function handleKeyPress(event) {
+        if (event.key === "Enter") {
+            sendMessage();
+        }
+    }
+
+    // ✅ Ensure chatbot works only on the chatbot page
+    if (window.location.pathname.includes("serverless-chatbot")) {
+        console.log("🟢 Chatbot page detected. Ready to handle messages.");
+
+        let sendButton = document.getElementById("send-btn");
+        let userInput = document.getElementById("user-input");
+
+        if (!sendButton || !userInput) {
+            console.error("❌ ERROR: Chatbot elements NOT found!");
+            return;
+        }
+
+        console.log("✅ Send button detected!");
+
+        // ✅ Attach event listeners **only once**
+        if (!eventListenersAttached) {
+            sendButton.addEventListener("click", sendMessage);
+            userInput.addEventListener("keypress", handleKeyPress);
+            eventListenersAttached = true; // Mark as attached
+        }
+    }
+
+    if (fetchWeatherBtn) {
+        fetchWeatherBtn.addEventListener("click", fetchWeather);
+    }
+
+    // Allow pressing "Enter" in any field to trigger the search
+    document.querySelectorAll(".weather-input").forEach(input => {
+        input.addEventListener("keypress", function (event) {
+            if (event.key === "Enter") {
+                event.preventDefault(); // Prevent form submission
+                fetchWeather();
+            }
+        });
+    });
+
+    function fetchWeather() {
+        console.log("🔍 Fetching weather...");
+
+        const city = document.getElementById("city-input").value.trim();
+        const state = document.getElementById("state-input").value.trim().toUpperCase();
+        const zip = document.getElementById("zip-input").value.trim();
+        const country = document.getElementById("country-input").value.trim().toUpperCase() || "US";
+
+        let url = "/weather?";
+
+        if (zip) {
+            url += `zip=${zip},${country}`;
+        } else if (city && state) {
+            url += `city=${city}&state=${state}&country=${country}`;
+        } else if (city) {
+            url += `city=${city}&country=${country}`;
+        } else {
+            alert("⚠️ Please enter a city and state or a zip code.");
+            return;
+        }
+
+        console.log(`🌍 API Request URL: ${url}`);
+
+        fetch(url)
+            .then(response => response.json())
+            .then(data => {
+                if (data.error) {
+                    alert(`❌ ${data.error}`);
+                    return;
+                }
+
+                document.getElementById("weather-city").innerText = `📍 City: ${data.city}, ${data.country}`;
+                document.getElementById("weather-temp").innerText = `🌡️ Temperature: ${data.temperature}°F`;
+                document.getElementById("weather-low-high").innerText = `🔻 Low: ${data.temp_min}°F | 🔺 High: ${data.temp_max}°F`;
+                document.getElementById("weather-humidity").innerText = `💧 Humidity: ${data.humidity}%`;
+                document.getElementById("weather-description").innerText = `☁️ Description: ${data.weather}`;
+
+                const iconUrl = `https://openweathermap.org/img/wn/${data.icon}.png`;
+                const weatherIcon = document.getElementById("weather-icon");
+                weatherIcon.src = iconUrl;
+                weatherIcon.style.display = "inline"; // Show the weather icon
+            })
+            .catch(error => console.error("❌ Error fetching weather data:", error));
+    }
+
 });
+

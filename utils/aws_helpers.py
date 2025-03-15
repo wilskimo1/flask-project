@@ -22,11 +22,18 @@ AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY = get_aws_credentials()
 if not AWS_ACCESS_KEY_ID or not AWS_SECRET_ACCESS_KEY:
     raise ValueError("❌ AWS Credentials not retrieved. Check Secrets Manager.")
 
-# AWS Configuration (Assuming credentials are stored in Secrets Manager)
+# AWS Configuration
 AWS_REGION = "us-east-1"
 DYNAMODB_TABLE_NAME = "resume_data"
+S3_BUCKET_NAME = "skimos-flask-app"  # S3 bucket name
 
-# Initialize DynamoDB and CloudWatch clients
+# Initialize AWS Clients
 dynamodb = boto3.resource("dynamodb", region_name=AWS_REGION)
 table = dynamodb.Table(DYNAMODB_TABLE_NAME)
-cloudwatch = boto3.client("cloudwatch", region_name=AWS_REGION)  # ✅ Add this line
+cloudwatch = boto3.client("cloudwatch", region_name=AWS_REGION)
+s3 = boto3.client(
+    "s3",
+    aws_access_key_id=AWS_ACCESS_KEY_ID,
+    aws_secret_access_key=AWS_SECRET_ACCESS_KEY,
+    region_name=AWS_REGION
+)

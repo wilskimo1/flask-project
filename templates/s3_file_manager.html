@@ -5,12 +5,49 @@
 {% block content %}
 <div class="container mt-5">
     <h1 class="text-center">S3 File Manager</h1>
-    <p class="text-center">Upload, delete, and manage files on S3.</p>
+    <p class="text-center">Upload, delete, and manage files on AWS S3.</p>
 
     <div class="text-center mt-4">
         <a href="{{ url_for('project_detail', project_id='s3-file-manager') }}" class="btn btn-secondary">
             ⬅️ Go Back to Project Details
         </a>
     </div>
+
+    <!-- If the user is not logged in, show login button -->
+    {% if not current_user.is_authenticated %}
+    <div class="text-center mt-4">
+        <a href="{{ url_for('login', next=url_for('s3_file_manager.s3_dashboard')) }}" class="btn btn-primary">
+            🔒 Login to Access S3 File Manager
+        </a>
+    </div>
+    {% else %}
+    
+    <!-- File Upload -->
+    <div class="mt-4">
+        <input type="file" id="fileInput" class="form-control">
+        <button class="btn btn-primary mt-2" onclick="uploadFile()">Upload</button>
+    </div>
+
+    <!-- File List -->
+    <div class="table-responsive mt-4">
+        <table class="table table-bordered">
+            <thead>
+                <tr>
+                    <th>File Name</th>
+                    <th>Size</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody id="fileTable">
+                <tr><td colspan="3" class="text-center">No files found.</td></tr>
+            </tbody>
+        </table>
+    </div>
+
+    {% endif %}
 </div>
+
+<!-- ✅ Include external script.js file -->
+<script src="{{ url_for('static', filename='js/script.js') }}"></script>
+
 {% endblock %}
