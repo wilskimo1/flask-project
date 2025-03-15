@@ -334,6 +334,33 @@ document.addEventListener("DOMContentLoaded", function () {
             })
             .catch(error => console.error("❌ Error fetching weather data:", error));
     }
+    const contactForm = document.getElementById("contactForm");
+    const successMessage = document.getElementById("successMessage");
 
+    contactForm.addEventListener("submit", function (event) {
+        event.preventDefault();
+
+        // Basic validation
+        const name = document.getElementById("name").value.trim();
+        const email = document.getElementById("email").value.trim();
+        const message = document.getElementById("message").value.trim();
+
+        if (!name || !email || !message) {
+            alert("Please fill in all fields.");
+            return;
+        }
+
+        // Show success message
+        successMessage.style.display = "block";
+
+        // Hide success message after 3 seconds
+        setTimeout(() => {
+            successMessage.style.display = "none";
+        }, 3000);
+
+        // Reset the form
+        contactForm.reset();
+    });
+  
 });
 

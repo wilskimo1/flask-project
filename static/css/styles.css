@@ -220,3 +220,40 @@ body {
 .experience-card:hover {
     transform: scale(1.03);
 }
+
+body {
+    background: white !important;
+    color: black !important;
+}
+
+
+.card {
+    background: #fff;
+    border-radius: 10px;
+}
+.btn-primary {
+    background-color: #2575fc;
+    border: none;
+}
+.btn-primary:hover {
+    background-color: #1a5ed8;
+}
+.contact-container {
+    margin-top: 80px; /* Adjust this value if needed */
+}
+.contact-container {
+    background: white;
+    padding: 20px;
+    border-radius: 8px;
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+}
+.btn-primary {
+    background-color: #007bff;
+    border: none;
+    padding: 10px 15px;
+    font-size: 1rem;
+    border-radius: 5px;
+}
+.btn-primary:hover {
+    background-color: #0056b3;
+}
