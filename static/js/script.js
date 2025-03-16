@@ -85,11 +85,12 @@ document.addEventListener("DOMContentLoaded", function () {
             .catch(error => console.error("❌ Error fetching project details:", error));
     }
 
-    // 🟢 Fetch and display GitHub commits
-    const commitsContainer = document.getElementById("github-commits");
-    if (commitsContainer) {
-        console.log("📂 Fetching latest GitHub commits...");
+   // 🟢 Fetch and display GitHub commits
+const commitsContainer = document.getElementById("github-commits");
+if (commitsContainer) {
+    console.log("📂 Fetching latest GitHub commits...");
 
+    function fetchGitHubCommits() {
         fetch("/api/github-commits")
             .then(response => response.json())
             .then(commits => {
@@ -118,23 +119,16 @@ document.addEventListener("DOMContentLoaded", function () {
             });
     }
 
-    // 🟢 Fetch Random Number
-    const randomButton = document.querySelector("#random-btn");
-    const resultDisplay = document.querySelector("#random-result");
+    // ✅ Fetch GitHub commits when the page loads
+    fetchGitHubCommits();
 
-    if (randomButton) {
-        console.log("🎲 Random number button found!");
-        randomButton.addEventListener("click", function () {
-            fetch("/api/random-number")
-                .then(response => response.json())
-                .then(data => {
-                    resultDisplay.innerText = `Your random number is: ${data.random_number}`;
-                })
-                .catch(error => console.error("❌ Error fetching random number:", error));
-        });
-    } else {
-        console.warn("⚠️ Random number button NOT found in the DOM!");
-    }
+    // ✅ Attach event listener for Refresh Button (if exists)
+    document.getElementById("refreshCommits")?.addEventListener("click", fetchGitHubCommits);
+
+    // ✅ Auto-refresh commits every 30 seconds
+    //setInterval(fetchGitHubCommits, 30000);
+}
+
 
     // 🟢 AWS Certifications
     const certContainer = document.getElementById("certifications-container");
@@ -170,38 +164,130 @@ document.addEventListener("DOMContentLoaded", function () {
         console.log("✅ AWS Certifications loaded successfully!");
     }
 
-    // 🟢 S3 File Manager Functions
-    function fetchFiles() {
+    // 🟢 S3 File Manager - File Upload Fix
+    document.addEventListener("DOMContentLoaded", function () {
+        console.log("✅ Script.js fully loaded!");
+    
+        // 🟢 Attach event listener to Upload button
+        const uploadButton = document.getElementById("uploadBtn");
+        if (uploadButton) {
+            uploadButton.addEventListener("click", uploadFile);
+            console.log("✅ Upload button event listener attached.");
+        } else {
+            console.warn("⚠️ Upload button NOT found in the DOM.");
+        }
+    
+        // Fetch files when the page loads
+        fetchFiles();
+    });
+    
+    window.fetchFiles = function() {
+        console.log("📂 Fetching files from S3...");
+    
         fetch("/api/s3/list")
             .then(response => response.json())
-            .then(data => console.log("✅ S3 Files Fetched:", data))
+            .then(data => {
+                console.log("✅ S3 Files Fetched:", data);
+    
+                const fileTable = document.getElementById("fileTable");
+                if (!fileTable) {
+                    console.error("❌ ERROR: fileTable not found in DOM.");
+                    return;
+                }
+    
+                fileTable.innerHTML = ""; // Clear existing files
+    
+                if (data.length === 0) {
+                    fileTable.innerHTML = `<tr><td colspan="3" class="text-center">No files found.</td></tr>`;
+                    return;
+                }
+    
+                data.forEach(file => {
+                    fileTable.innerHTML += `
+                        <tr>
+                            <td><a href="${file.url}" target="_blank">${file.name}</a></td>
+                            <td>${(file.size / 1024).toFixed(2)} KB</td>
+                            <td><button class="btn btn-danger btn-sm" onclick="deleteFile('${file.name}')">Delete</button></td>
+                        </tr>
+                    `;
+                });
+            })
             .catch(error => console.error("❌ Error fetching S3 files:", error));
-    }
+    };
+    
 
-    function uploadFile() {
-        let file = document.getElementById("fileInput").files[0];
+    window.uploadFile = function() {
+        const fileInput = document.getElementById("fileInput");
+        const file = fileInput.files[0];
+    
+        if (!file) {
+            alert("⚠️ Please select a file before uploading.");
+            return;
+        }
+    
         let formData = new FormData();
         formData.append("file", file);
-
-        fetch("/api/s3/upload", { method: "POST", body: formData })
-            .then(response => response.json())
-            .then(data => console.log("✅ File uploaded:", data))
-            .catch(error => console.error("❌ Error uploading file:", error));
-    }
-
-    function deleteFile(fileName) {
+    
+        console.log("📤 Attempting to upload file:", file.name);
+    
+        fetch("/api/s3/upload", {
+            method: "POST",
+            body: formData
+        })
+        .then(response => response.json())
+        .then(data => {
+            console.log("✅ Server Response:", data);
+    
+            if (data.error) {
+                console.error("❌ Upload Failed:", data.error);
+                alert(`❌ Upload failed: ${data.error}`);
+            } else {
+                alert("✅ File uploaded successfully!");
+                
+                // ✅ Ensure `fetchFiles()` exists before calling it
+                if (typeof fetchFiles === "function") {
+                    fetchFiles();
+                } else {
+                    console.error("❌ ERROR: fetchFiles() is not defined.");
+                }
+            }
+        })
+        .catch(error => {
+            console.error("❌ Network/Fetch Error:", error);
+            alert("❌ Upload request failed. Check console for details.");
+        });
+    };
+    
+     
+    window.deleteFile = function(fileName) {
+        console.log(`🗑️ Attempting to delete file: ${fileName}`);
+    
         fetch("/api/s3/delete", {
             method: "POST",
             body: JSON.stringify({ file_name: fileName }),
             headers: { "Content-Type": "application/json" }
         })
-            .then(response => response.json())
-            .then(data => console.log("✅ File deleted:", data))
-            .catch(error => console.error("❌ Error deleting file:", error));
-    }
-
+        .then(response => response.json())
+        .then(data => {
+            console.log("✅ File deleted successfully:", data);
+    
+            if (data.error) {
+                console.error("❌ Delete Failed:", data.error);
+                alert(`❌ Delete failed: ${data.error}`);
+            } else {
+                alert("✅ File deleted successfully!");
+                fetchFiles(); // ✅ Refresh file list after deletion
+            }
+        })
+        .catch(error => {
+            console.error("❌ Network/Fetch Error:", error);
+            alert("❌ Delete request failed. Check console for details.");
+        });
+    };
+    
+   
     if (window.location.pathname === "/s3-file-manager") {
-        fetchFiles();
+        fetchFiles(); // Load S3 files when on the page
     }
     // 🟢 Serverless Chatbot Integration (Prevent Duplicates)
     function sendMessage() {
@@ -334,33 +420,97 @@ document.addEventListener("DOMContentLoaded", function () {
             })
             .catch(error => console.error("❌ Error fetching weather data:", error));
     }
-    const contactForm = document.getElementById("contactForm");
-    const successMessage = document.getElementById("successMessage");
-
-    contactForm.addEventListener("submit", function (event) {
-        event.preventDefault();
-
-        // Basic validation
-        const name = document.getElementById("name").value.trim();
-        const email = document.getElementById("email").value.trim();
-        const message = document.getElementById("message").value.trim();
-
-        if (!name || !email || !message) {
-            alert("Please fill in all fields.");
-            return;
+    
+    document.addEventListener("DOMContentLoaded", function () {
+        console.log("✅ Script.js loaded successfully!");
+    
+        // 🟢 Fetch Random Number
+        const randomButton = document.querySelector("#random-btn");
+        const resultDisplay = document.querySelector("#random-result");
+    
+        if (randomButton && resultDisplay) {
+            console.log("🎲 Random number button found!");
+            randomButton.addEventListener("click", function () {
+                fetch("/api/random-number")
+                    .then(response => response.json())
+                    .then(data => {
+                        resultDisplay.innerText = `Your random number is: ${data.random_number}`;
+                    })
+                    .catch(error => console.error("❌ Error fetching random number:", error));
+            });
+        } else {
+            console.warn("⚠️ Random number button NOT found in the DOM. Skipping event listener.");
         }
-
-        // Show success message
-        successMessage.style.display = "block";
-
-        // Hide success message after 3 seconds
-        setTimeout(() => {
-            successMessage.style.display = "none";
-        }, 3000);
-
-        // Reset the form
-        contactForm.reset();
+    
+        // 🟢 Contact Form Handling
+        const contactForm = document.getElementById("contactForm");
+        const successMessage = document.getElementById("successMessage");
+    
+        if (contactForm && successMessage) {
+            console.log("📩 Contact form found! Adding event listener...");
+            contactForm.addEventListener("submit", function (event) {
+                event.preventDefault();
+    
+                // Basic validation
+                const name = document.getElementById("name").value.trim();
+                const email = document.getElementById("email").value.trim();
+                const message = document.getElementById("message").value.trim();
+    
+                if (!name || !email || !message) {
+                    alert("⚠️ Please fill in all fields.");
+                    return;
+                }
+    
+                // Show success message
+                successMessage.style.display = "block";
+    
+                // Hide success message after 3 seconds
+                setTimeout(() => {
+                    successMessage.style.display = "none";
+                }, 3000);
+    
+                // Reset the form
+                contactForm.reset();
+            });
+        } else {
+            console.warn("⚠️ Contact form NOT found in the DOM. Skipping event listener.");
+        }
     });
-  
-});
+    
 
+window.uploadFile = function() {
+    const fileInput = document.getElementById("fileInput");
+    const file = fileInput.files[0];
+
+    if (!file) {
+        alert("⚠️ Please select a file before uploading.");
+        return;
+    }
+
+    let formData = new FormData();
+    formData.append("file", file);
+
+    console.log("📤 Attempting to upload file:", file.name);
+
+    fetch("/api/s3/upload", {
+        method: "POST",  // ✅ Ensure it's a POST request
+        body: formData
+    })
+    .then(response => response.json())
+    .then(data => {
+        console.log("✅ Server Response:", data);
+    
+        if (data.error) {
+            console.error("❌ Upload Failed:", data.error);
+            alert(`❌ Upload failed: ${data.error}`);
+        } else {
+            alert("✅ File uploaded successfully!");
+            fetchFiles(); // Refresh file list
+        }
+    })
+    .catch(error => {
+        console.error("❌ Network/Fetch Error:", error);
+        alert("❌ Upload request failed. Check console for details.");
+    });
+    
+}})

@@ -17,6 +17,14 @@
             <button id="send-btn" class="btn btn-primary">Send</button> <!-- ✅ Send Button -->
         </div>
     </div>
+
+        <!-- Go Back Button -->
+    <div class="text-center mt-4">
+        <a href="{{ url_for('project_detail', project_id='serverless-chatbot') }}" class="btn btn-secondary">
+            ⬅️ Go Back to Project Details
+        </a>
+    </div>
+
 </div>
 
 {% endblock %}

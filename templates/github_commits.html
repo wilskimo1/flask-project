@@ -1,0 +1,70 @@
+{% extends "base.html" %}
+
+{% block title %}Latest GitHub Commits - Will Robinson{% endblock %}
+
+{% block content %}
+<div class="container mt-5">
+    <h1 class="text-center">Latest GitHub Commits</h1>
+    <p class="text-center">View the latest code updates in the Flask project repository.</p>
+
+    <!-- 🟢 GitHub Commits Section -->
+    <div class="container mt-5">
+        <h3 class="text-center">Latest GitHub Commits</h3>
+        <ul id="github-commits" class="list-group"></ul>
+    </div>
+
+    <!-- 🔄 Refresh Button -->
+    <div class="text-center mt-4">
+        <button id="refreshCommits" class="btn btn-primary">🔄 Refresh Commits</button>
+    </div>
+
+    <!-- 🔙 Go Back Button -->
+    <div class="text-center mt-4">
+        <a href="{{ url_for('project_detail', project_id='github-commits') }}" class="btn btn-secondary">
+            ⬅️ Go Back to Project Details
+        </a>
+    </div>
+</div>
+
+<script>
+document.addEventListener("DOMContentLoaded", function () {
+    fetchGitHubCommits();
+
+    document.getElementById("refreshCommits").addEventListener("click", fetchGitHubCommits);
+
+    function fetchGitHubCommits() {
+        console.log("📂 Fetching latest GitHub commits...");
+        
+        fetch("/api/github-commits")
+            .then(response => response.json())
+            .then(commits => {
+                const commitsContainer = document.getElementById("github-commits");
+                commitsContainer.innerHTML = ""; // Clear previous commits
+
+                if (commits.error) {
+                    commitsContainer.innerHTML = `<li class="list-group-item text-danger">${commits.error}</li>`;
+                    return;
+                }
+
+                commits.forEach(commit => {
+                    const commitItem = document.createElement("li");
+                    commitItem.classList.add("list-group-item");
+                    commitItem.innerHTML = `
+                        <strong>${commit.message}</strong><br>
+                        <small>By: ${commit.author} on ${new Date(commit.date).toLocaleString()}</small><br>
+                        <a href="${commit.url}" target="_blank">View on GitHub</a>
+                    `;
+                    commitsContainer.appendChild(commitItem);
+                });
+
+                console.log("✅ GitHub commits loaded successfully!");
+            })
+            .catch(error => {
+                console.error("❌ Error fetching GitHub commits:", error);
+                document.getElementById("github-commits").innerHTML = `<li class="list-group-item text-danger">Failed to load commits.</li>`;
+            });
+    }
+});
+</script>
+
+{% endblock %}

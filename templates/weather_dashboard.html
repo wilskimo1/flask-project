@@ -15,7 +15,6 @@
         <button id="fetch-weather-btn" class="btn btn-primary">Search</button>
     </div>
     
-    
 
     <div id="weather-result" class="text-center mt-4">
         <h2 id="weather-city">📍 City: </h2>
@@ -25,6 +24,14 @@
         <p id="weather-description">☁️ Description: --</p>
         <img id="weather-icon" src="" alt="" style="display: none;">
     </div>
+
+        <!-- Go Back Button -->
+    <div class="text-center mt-4">
+        <a href="{{ url_for('project_detail', project_id='weather-dashboard') }}" class="btn btn-secondary">
+            ⬅️ Go Back to Project Details
+        </a>
+    </div>
+
 </div>
 
 <script>

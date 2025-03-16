@@ -74,6 +74,32 @@
     </div>
 </div>
 
+<!-- Resume API Dashboard Image (Always Visible) -->
+<div class="text-center mt-4">
+    <p class="text-muted">🔍 Click to enlarge the Resume API preview</p>
+    <a href="#" data-bs-toggle="modal" data-bs-target="#resumeImageModal">
+        <img src="{{ url_for('static', filename='images/resumeAPI.png') }}" 
+             alt="Flask Resume API" class="img-thumbnail" style="max-width: 200px;">
+    </a>
+</div>
+
+<!-- Bootstrap Modal for Enlarged Image -->
+<div class="modal fade" id="resumeImageModal" tabindex="-1" aria-labelledby="resumeImageModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="resumeImageModalLabel">Flask Resume API</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body text-center">
+                <img src="{{ url_for('static', filename='images/resumeAPI.png') }}" 
+                     alt="Flask Resume API" class="img-fluid">
+            </div>
+        </div>
+    </div>
+</div>
+
+
 <script>
 document.addEventListener("DOMContentLoaded", function () {
     fetchResumeData();

@@ -117,36 +117,36 @@ def logout():
 # Project Data
 projects = [
     {
-        "id": "aws-cost", "title": "AWS Cost Tracker", "technologies": "Flask | DynamoDB | AWS Lambda",
+     "id": "aws-cost", "title": "AWS Cost Tracker", "technologies": "Flask | DynamoDB | AWS Lambda",
      "short_description": "Monitors AWS spending & sends alerts.",
      "detailed_description": "A cloud-based tool that continuously monitors AWS usage costs, providing real-time alerts when spending exceeds budgeted limits.",
      "commercial_use_case": "Useful for IT teams managing cloud budgets, ensuring cost efficiency and preventing unexpected overages."
     },
     {
-        "id": "flask-resume-api", "title": "Flask Resume API", "technologies": "Flask | PostgreSQL",
+     "id": "flask-resume-api", "title": "Flask Resume API", "technologies": "Flask | PostgreSQL",
      "short_description": "Dynamically fetches and updates resume data.",
      "detailed_description": "A REST API that allows dynamic updates and retrieval of resume details stored in a database.",
      "commercial_use_case": "Ideal for job portals, recruiters, and professionals wanting a dynamically updated online resume."
     },
     {
-        "id": "it-compliance-auditor", "title": "IT Compliance Auditor", "technologies": "Flask | AWS Security Hub",
+     "id": "it-compliance-auditor", "title": "IT Compliance Auditor", "technologies": "Flask | AWS Security Hub",
      "short_description": "Scans AWS for compliance violations.",
      "detailed_description": "Automatically evaluates AWS resources against compliance frameworks like CIS, NIST, and PCI-DSS.",
      "commercial_use_case": "Helps security teams maintain AWS compliance and prevent security risks."
     },
     {
-        "id": "infra-monitoring-dashboard", "title": "Infrastructure Monitoring", "technologies": "Flask | Dash | AWS CloudWatch",
+     "id": "infra-monitoring-dashboard", "title": "Infrastructure Monitoring", "technologies": "Flask | Dash | AWS CloudWatch",
      "short_description": "Real-time AWS resource monitoring.",
      "detailed_description": "A web-based dashboard that visualizes AWS infrastructure performance metrics in real-time.",
      "commercial_use_case": "Used by IT operations teams to monitor system health, detect anomalies, and optimize infrastructure performance."
     },
     {
-        "id": "log-analyzer",
-        "title": "Log Analyzer & Error Tracker",
-        "technologies": "Flask | ELK Stack",
-        "short_description": "This Project was removed.",
-        "detailed_description": "Analyzes system logs, detects patterns, and generates real-time alerts for critical failures.",
-        "commercial_use_case": "Used by DevOps and IT support teams for proactive issue resolution and log management automation."
+     "id": "github-commits",
+     "title": "Latest GitHub Commits",
+     "technologies": "Flask | GitHub API",
+     "short_description": "Displays the latest commits from the Flask project repository.",
+     "detailed_description": "Fetches and displays commit messages, authors, and timestamps from GitHub.",
+     "commercial_use_case": "Useful for tracking project progress, monitoring code changes, and showcasing development activity."
     },
     {
         "id": "s3-file-manager",
@@ -209,7 +209,7 @@ def project_page(project_id):
         "serverless-chatbot": "serverless_chatbot.html",
         "weather-dashboard": "weather_dashboard.html",  # ✅ Added Weather Dashboard
         "flask-aws-deployment": "flask_aws_deployment.html"
-    }
+        }
 
     template_name = template_map.get(project_id)
 
@@ -265,6 +265,12 @@ def contact():
 @app.route("/api/random-number", methods=["GET"])
 def random_number():
     return jsonify({"random_number": random.randint(1, 100)})
+
+@app.route("/projects/github-commits/page")
+def github_commits_page():
+    """Render the GitHub Commits Page"""
+    return render_template("github_commits.html")  # Ensure this template exists
+
 
 # 📌 New API: Fetch latest GitHub commits
 @app.route("/api/github-commits", methods=["GET"])
