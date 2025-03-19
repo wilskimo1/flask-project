@@ -9,12 +9,9 @@
 
     <div class="input-group">
         <input type="text" id="city-input" class="form-control weather-input" placeholder="City (e.g., Miami)">
-        <input type="text" id="state-input" class="form-control weather-input" placeholder="State (e.g., FL)" maxlength="2">
-        <input type="text" id="zip-input" class="form-control weather-input" placeholder="Zip Code (optional)">
-        <input type="text" id="country-input" class="form-control weather-input" placeholder="Country (default: US)" maxlength="2">
+        <input type="text" id="state-input" class="form-control weather-input" placeholder="State (optional, e.g., FL)" maxlength="2">
         <button id="fetch-weather-btn" class="btn btn-primary">Search</button>
     </div>
-    
 
     <div id="weather-result" class="text-center mt-4">
         <h2 id="weather-city">📍 City: </h2>
@@ -25,24 +22,31 @@
         <img id="weather-icon" src="" alt="" style="display: none;">
     </div>
 
-        <!-- Go Back Button -->
+    <!-- Go Back Button -->
     <div class="text-center mt-4">
         <a href="{{ url_for('project_detail', project_id='weather-dashboard') }}" class="btn btn-secondary">
             ⬅️ Go Back to Project Details
         </a>
     </div>
-
 </div>
 
 <script>
 document.getElementById("fetch-weather-btn").addEventListener("click", function () {
     const city = document.getElementById("city-input").value.trim();
+    const state = document.getElementById("state-input").value.trim().toUpperCase();
+    
     if (!city) {
         alert("Please enter a city!");
         return;
     }
 
-    fetch(`/weather?city=${city}`)
+    // ✅ Construct the query parameters (City only OR City + State)
+    let query = `/weather?city=${encodeURIComponent(city)}`;
+    if (state) {
+        query += `&state=${encodeURIComponent(state)}`;
+    }
+
+    fetch(query)
         .then(response => response.json())
         .then(data => {
             if (data.error) {
