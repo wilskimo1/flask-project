@@ -7,12 +7,12 @@
     <h1 class="text-center">Infrastructure Monitoring Dashboard</h1>
     <p class="text-center">Real-time AWS resource monitoring.</p>
 
+    <div id="isAdminData" data-is-admin="{{ is_admin | tojson | safe }}" style="display: none;"></div>
+
     {% if is_admin %}
-    <!-- Monitoring Dashboard -->
     <div class="card p-4 mt-4">
         <h3 class="text-center">EC2 CPU Utilization</h3>
         <p class="text-center">Current AWS resource usage.</p>
-
         <div id="monitoringResults">
             <p class="text-center">Loading monitoring data...</p>
         </div>
@@ -27,42 +27,36 @@
     </div>
     {% else %}
     <div class="text-center mt-4">
-        <a href="{{ url_for('login', next=url_for('infra_monitoring.monitoring_dashboard')) }}" class="btn btn-warning">
+        <a href="{{ url_for('login', next=request.path) }}" class="btn btn-warning">
             🔑 Login to View Monitoring Data
         </a>
     </div>
     {% endif %}
 
-    <!-- Infrastructure Monitoring Dashboard Image (Always Visible) -->
-<div class="text-center mt-4">
-    <p class="text-muted">🔍 Click to enlarge the dashboard preview</p>
-    <a href="#" data-bs-toggle="modal" data-bs-target="#imageModal">
-        <img src="{{ url_for('static', filename='images/InfraMonitorDashboard.png') }}" 
-             alt="Infrastructure Monitoring Dashboard" class="img-thumbnail" style="max-width: 200px;">
-    </a>
-</div>
+    <div class="text-center mt-4">
+        <p class="text-muted">🔍 Click to enlarge the dashboard preview</p>
+        <a href="#" data-bs-toggle="modal" data-bs-target="#imageModal">
+            <img src="{{ url_for('static', filename='images/InfraMonitorDashboard.png') }}" 
+                 alt="Infrastructure Monitoring Dashboard" class="img-thumbnail" style="max-width: 200px;"
+                 onerror="this.onerror=null; this.src='{{ url_for('static', filename='images/placeholder.png') }}';">
+        </a>
+    </div>
 
-<!-- Bootstrap Modal for Enlarged Image -->
-<div class="modal fade" id="imageModal" tabindex="-1" aria-labelledby="imageModalLabel" aria-hidden="true">
-    <div class="modal-dialog modal-lg">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title" id="imageModalLabel">Infrastructure Monitoring Dashboard</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-            </div>
-            <div class="modal-body text-center">
-                <img src="{{ url_for('static', filename='images/InfraMonitorDashboard.png') }}" 
-                     alt="Infrastructure Monitoring Dashboard" class="img-fluid">
+    <div class="modal fade" id="imageModal" tabindex="-1" aria-labelledby="imageModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="imageModalLabel">Infrastructure Monitoring Dashboard</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body text-center">
+                    <img src="{{ url_for('static', filename='images/InfraMonitorDashboard.png') }}" 
+                         alt="Infrastructure Monitoring Dashboard" class="img-fluid">
+                </div>
             </div>
         </div>
     </div>
-</div>
 
-<!-- ✅ Add hidden data to store login status -->
-<div id="isAdminData" style="display: none;">{{ is_admin | tojson }}</div>
-
-
-    <!-- Go Back Button -->
     <div class="text-center mt-4">
         <a href="{{ url_for('project_detail', project_id='infra-monitoring-dashboard') }}" class="btn btn-secondary">
             ⬅️ Go Back to Project Details
@@ -77,64 +71,34 @@ document.addEventListener("DOMContentLoaded", function () {
     const refreshButton = document.getElementById("refreshMonitoring");
     const monitoringContainer = document.getElementById("monitoringResults");
 
-    // ✅ Ensure isAdmin is properly retrieved from Flask
-    let isAdmin = false;
-    try {
-        const isAdminElement = document.getElementById("isAdminData");
-        isAdmin = isAdminElement ? JSON.parse(isAdminElement.textContent) : false;
-    } catch (error) {
-        console.error("❌ Error parsing is_admin JSON:", error);
-    }
+    const isAdminElement = document.getElementById("isAdminData");
+    const isAdmin = isAdminElement ? JSON.parse(isAdminElement.getAttribute("data-is-admin")) : false;
 
-    console.log("🔍 DEBUG: isAdmin =", isAdmin);
-
-    if (!isAdmin) {
+    if (isAdmin) {
+        console.log("🟢 User is logged in. Fetching monitoring data...");
+        fetchMonitoringData();
+        refreshButton?.addEventListener("click", fetchMonitoringData);
+    } else {
         console.warn("🔒 User NOT logged in. Monitoring data is restricted.");
-        if (monitoringContainer) {
-            monitoringContainer.innerHTML = `<p class='text-center text-warning'>🔒 Please log in to view monitoring data.</p>`;
-        }
-        return;
+        monitoringContainer.innerHTML = `<p class='text-center text-warning'>🔒 Please log in to view monitoring data.</p>`;
     }
-
-    console.log("🟢 User is logged in. Fetching monitoring data...");
-    fetchMonitoringData();
-    refreshButton?.addEventListener("click", fetchMonitoringData);
 
     function fetchMonitoringData() {
-        console.log("📡 Fetching monitoring data...");
-
         fetch("/infra-monitoring/api/monitoring")
-            .then(response => {
-                if (!response.ok) {
-                    throw new Error(`HTTP error! Status: ${response.status}`);
-                }
-                return response.json();
-            })
+            .then(response => response.json())
             .then(data => {
-                if (!monitoringContainer) {
-                    console.error("❌ ERROR: monitoringContainer is not found in the DOM.");
-                    return;
-                }
-
-                monitoringContainer.innerHTML = "";
-
                 if (data.error) {
-                    monitoringContainer.innerHTML = "<p class='text-danger'>❌ Error loading monitoring data.</p>";
+                    monitoringContainer.innerHTML = "<p class='text-danger'>❌ Failed to load monitoring data.</p>";
                     return;
                 }
-
                 monitoringContainer.innerHTML = `<p class="text-center text-primary">📊 CPU Utilization: <strong>${data.cpu_utilization}%</strong></p>`;
             })
             .catch(error => {
                 console.error("❌ Error fetching monitoring data:", error);
-                if (monitoringContainer) {
-                    monitoringContainer.innerHTML = "<p class='text-danger'>❌ Error loading monitoring data.</p>";
-                }
+                monitoringContainer.innerHTML = "<p class='text-danger'>❌ Error loading monitoring data.</p>";
             });
     }
 });
-
-
 </script>
 
 {% endblock %}

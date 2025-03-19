@@ -1,4 +1,4 @@
-from flask import Blueprint, render_template, jsonify
+from flask import Blueprint, render_template, jsonify, current_app
 import boto3
 from flask_login import login_required, current_user
 
@@ -28,17 +28,16 @@ def get_compliance_findings():
         return findings
 
     except Exception as e:
-        return {"error": str(e)}
+        current_app.logger.error(f"❌ Error fetching compliance findings: {str(e)}")
+        return []  # ✅ Return empty list instead of an error JSON object
 
 ### 🔓 **Allow All Users to View the Page (No Login Required)**
 @it_compliance_auditor_bp.route("/projects/it-compliance-auditor/page")
 def compliance_page():
     """Render the IT Compliance Auditor page (Publicly Accessible)."""
     is_admin = current_user.is_authenticated  # ✅ Check if user is logged in
-    print(f"🔍 DEBUG: isAdmin = {is_admin}")  # ✅ Debugging
+    current_app.logger.info(f"📄 Rendering IT Compliance Auditor page (is_admin={is_admin})")  # ✅ Use logging
     return render_template("it_compliance_auditor.html", is_admin=is_admin)
-
-
 
 ### 🔒 **Only Require Login for API Requests**
 @it_compliance_auditor_bp.route("/api/compliance", methods=["GET"])

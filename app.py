@@ -7,7 +7,6 @@ from projects.aws_cost_tracker import aws_cost_tracker_bp  # Import the function
 from projects.flask_resume_api import flask_resume_api_bp  # ✅ Resume API
 from projects.it_compliance_auditor import it_compliance_auditor_bp  # ✅ Import
 from projects.infra_monitoring import infra_monitoring_bp
-#from utils.aws_helpers import dynamodb, table  # ✅ Import from aws_helpers.py
 from datetime import timedelta
 
 
@@ -16,13 +15,13 @@ app.config['TEMPLATES_AUTO_RELOAD'] = True
 app.secret_key = os.urandom(24)  
 
 
-# ✅ Initialize Flask-Session the correct way
+# Initialize Flask-Session the correct way
 app.config["SESSION_TYPE"] = "filesystem"  # Store sessions in the filesystem
 app.config["SESSION_PERMANENT"] = False  # Make sessions temporary
 app.config["SESSION_USE_SIGNER"] = True  # Encrypt session cookies
 app.config["SESSION_FILE_DIR"] = "./flask_session"  # Define session storage location
 
-Session(app)  # ✅ Correct way to initialize Flask-Session
+Session(app)  # Correct way to initialize Flask-Session
 
 
 
@@ -39,7 +38,7 @@ class User(UserMixin):
 def load_user(user_id):
     return User(user_id)
 
-# ✅ Make Flask-Login return a JSON error instead of redirecting to login page
+# Make Flask-Login return a JSON error instead of redirecting to login page
 @login_manager.unauthorized_handler
 def unauthorized_callback():
     return jsonify({"error": "User is not authenticated"}), 403  # 👈 Now returns JSON instead of redirecting
@@ -85,51 +84,43 @@ class User(UserMixin):
 def load_user(user_id):
     return User(user_id)
 
-# 🔒 Admin Login Route with Dynamic Redirects
+# 🔒 Secure Admin Login Route with Dynamic Redirects
 @app.route("/login", methods=["GET", "POST"])
 def login():
-    next_page = request.args.get("next")  # Capture the original requested page
+    next_page = request.args.get("next", "").strip()  # Capture original requested page
 
     if request.method == "POST":
-        username = request.form["username"]
-        password = request.form["password"]
-        next_page = request.form.get("next")  # Get next_page from form
-        remember = request.form.get("remember") == "on"  # ✅ Capture "Remember Me"
+        username = request.form.get("username", "").strip()
+        password = request.form.get("password", "").strip()
+        remember = request.form.get("remember") == "on"  # Capture "Remember Me"
 
         if username == config.ADMIN_USERNAME and password == config.ADMIN_PASSWORD:
             user = User(id=username)
-            login_user(user, remember=remember)  # ✅ Enable "Remember Me" persistence
+            login_user(user, remember=remember)  # Enable "Remember Me" persistence
 
-            session["logged_in"] = True  # ✅ Store login state in session
-            session.modified = True  # ✅ Mark session as modified
+            app.logger.info(f"🔓 User {username} logged in successfully.")  # ✅ Safe logging
 
-            print(f"🔓 DEBUG: User logged in? {current_user.is_authenticated}")  # ✅ Debugging
+            # ✅ Redirect to original page if valid, else go to projects
+            return redirect(next_page if next_page else url_for("projects_page"))
 
-            if next_page and next_page != "None":
-                return redirect(next_page)
-
-            return redirect(url_for("projects_page"))
-
+        app.logger.warning("⚠️ Failed login attempt.")  # ✅ Log failed attempts
         return "Invalid credentials. Try again."
 
     return render_template("login.html", next_page=next_page)
-
-
-
 
 # 🔓 Logout Route
 @app.route("/logout")
 @login_required
 def logout():
-    session.clear()  # ✅ Ensure session is completely cleared
+    session.clear()  # Ensure session is completely cleared
     logout_user()
     
-    # ✅ Check if 'next' parameter exists in the request
+    # Check if 'next' parameter exists in the request
     next_page = request.args.get("next")
     
     if next_page:
-        return redirect(next_page)  # ✅ Redirect to the provided 'next' page   
-    return redirect(url_for("projects_page"))  # ✅ Default to projects list if no next page is provided
+        return redirect(next_page)  # Redirect to the provided 'next' page   
+    return redirect(url_for("projects_page"))  # Default to projects list if no next page is provided
 
 
 # Project Data
@@ -213,12 +204,12 @@ def projects_page():
 @app.route("/projects/<project_id>/page")
 def project_page(project_id):
     """Serve the actual project page if the template exists and pass required data."""
-    
-    # Redirect AWS Cost Tracker to the correct route
-    if project_id == "aws-cost":
-        return redirect(url_for("aws_cost_tracker.aws_cost_page"))  # ✅ Redirect to Blueprint route
 
-    # Map other projects to their templates
+    # ✅ Redirect AWS Cost Tracker to its correct route
+    if project_id == "aws-cost":
+        return redirect(url_for("aws_cost_tracker.aws_cost_page"))  # Redirect to Blueprint route
+
+    # ✅ Centralized Project Template Mapping
     template_map = {
         "flask-resume-api": "flask_resume_api.html",
         "it-compliance-auditor": "it_compliance_auditor.html",
@@ -226,18 +217,20 @@ def project_page(project_id):
         "s3-file-manager": "s3_file_manager.html",
         "serverless-chatbot": "serverless_chatbot.html",
         "weather-dashboard": "weather_dashboard.html",
-        #"flask-aws-deployment": "flask_aws_deployment.html"
+        # "flask-aws-deployment": "flask_aws_deployment.html"  # Removed for now
     }
 
     template_name = template_map.get(project_id)
 
     if not template_name:
+        app.logger.warning(f"⚠️ Project page '{project_id}' not found.")
         return "Project page not found", 404
 
-    is_admin = current_user.is_authenticated  # ✅ Ensure is_admin is always defined
-    print(f"DEBUG: Rendering {template_name}, is_admin={is_admin}")  # ✅ Debugging output
+    is_admin = current_user.is_authenticated  # Ensure admin status is passed
+    app.logger.info(f"📄 Rendering {template_name} (is_admin={is_admin})")  # Use logging instead of print
 
-    return render_template(template_name, is_admin=is_admin)  # ✅ Pass is_admin explicitly
+    return render_template(template_name, is_admin=is_admin)  # Pass is_admin explicitly
+
 
 
 # 📑 Deployment Documentation Page
