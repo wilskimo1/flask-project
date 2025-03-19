@@ -1,10 +1,8 @@
 document.addEventListener("DOMContentLoaded", function () {
     console.log("✅ Script.js loaded successfully!");
 
-    const fetchWeatherBtn = document.getElementById("fetch-weather-btn");
-
     let eventListenersAttached = false; // Track if listeners are attached
-    let isSending = false; // Prevent duplicate requests
+    let isSending = false; // Prevent duplicate chatbot requests
 
     // 🟢 Navbar Toggle
     const navbarToggler = document.querySelector(".navbar-toggler");
@@ -12,13 +10,10 @@ document.addEventListener("DOMContentLoaded", function () {
 
     if (navbarToggler && navbarCollapse) {
         console.log("✅ Navbar elements found!");
-
-        // Close navbar when clicking a menu item (for mobile view)
         document.querySelectorAll(".nav-link").forEach(link => {
             link.addEventListener("click", function () {
                 if (window.innerWidth < 992) {
-                    const bsCollapse = new bootstrap.Collapse(navbarCollapse);
-                    bsCollapse.hide();
+                    new bootstrap.Collapse(navbarCollapse).hide();
                 }
             });
         });
@@ -55,259 +50,114 @@ document.addEventListener("DOMContentLoaded", function () {
             .catch(error => console.error("❌ Error fetching projects:", error));
     }
 
-    // 🟢 Fetch Project Details for Project Details Page
-    if (document.getElementById("project-title")) {
-        console.log("📂 Fetching project details...");
-        const projectId = window.location.pathname.split("/").pop(); // Extract project ID from URL
+ // 🟢 Fetch Project Details for Project Details Page
+ if (document.getElementById("project-title")) {
+    console.log("📂 Fetching project details...");
+    const projectId = window.location.pathname.split("/").pop(); // Extract project ID from URL
 
-        fetch(`/api/projects/${projectId}`)
-            .then(response => response.json())
-            .then(project => {
-                if (project.error) {
-                    console.error("❌ Error: Project not found");
-                    document.getElementById("project-title").innerText = "Project Not Found";
-                    return;
-                }
+    fetch(`/api/projects/${projectId}`)
+        .then(response => response.json())
+        .then(project => {
+            if (project.error) {
+                console.error("❌ Error: Project not found");
+                document.getElementById("project-title").innerText = "Project Not Found";
+                return;
+            }
 
-                // Populate project details dynamically
-                document.getElementById("project-title").innerText = project.title;
-                document.getElementById("project-technologies").innerHTML = `<strong>Technologies Used:</strong> ${project.technologies}`;
-                document.getElementById("project-description").innerText = project.detailed_description;
-                document.getElementById("project-use-case").innerText = project.commercial_use_case;
+            // Populate project details dynamically
+            document.getElementById("project-title").innerText = project.title;
+            document.getElementById("project-technologies").innerHTML = `<strong>Technologies Used:</strong> ${project.technologies}`;
+            document.getElementById("project-description").innerText = project.detailed_description;
+            document.getElementById("project-use-case").innerText = project.commercial_use_case;
 
-                // Show deployment guide for "flask-aws-deployment" project only
-                if (project.id === "flask-aws-deployment") {
-                    document.getElementById("deployment-guide").style.display = "block";
-                }
+            // Show deployment guide for "flask-aws-deployment" project only
+           // if (project.id === "flask-aws-deployment") {
+            //    document.getElementById("deployment-guide").style.display = "block";
+           // }
 
-                console.log("✅ Project details loaded successfully!");
-            })
-            .catch(error => console.error("❌ Error fetching project details:", error));
-    }
-
-   // 🟢 Fetch and display GitHub commits
-const commitsContainer = document.getElementById("github-commits");
-if (commitsContainer) {
-    console.log("📂 Fetching latest GitHub commits...");
-
-    function fetchGitHubCommits() {
-        fetch("/api/github-commits")
-            .then(response => response.json())
-            .then(commits => {
-                if (commits.error) {
-                    commitsContainer.innerHTML = `<li class="list-group-item text-danger">${commits.error}</li>`;
-                    return;
-                }
-
-                commitsContainer.innerHTML = "";
-                commits.forEach(commit => {
-                    const commitItem = document.createElement("li");
-                    commitItem.classList.add("list-group-item");
-                    commitItem.innerHTML = `
-                        <strong>${commit.message}</strong><br>
-                        <small>By: ${commit.author} on ${new Date(commit.date).toLocaleString()}</small><br>
-                        <a href="${commit.url}" target="_blank">View on GitHub</a>
-                    `;
-                    commitsContainer.appendChild(commitItem);
-                });
-
-                console.log("✅ GitHub commits loaded successfully!");
-            })
-            .catch(error => {
-                console.error("❌ Error fetching GitHub commits:", error);
-                commitsContainer.innerHTML = `<li class="list-group-item text-danger">Failed to load commits.</li>`;
-            });
-    }
-
-    // ✅ Fetch GitHub commits when the page loads
-    fetchGitHubCommits();
-
-    // ✅ Attach event listener for Refresh Button (if exists)
-    document.getElementById("refreshCommits")?.addEventListener("click", fetchGitHubCommits);
-
-    // ✅ Auto-refresh commits every 30 seconds
-    //setInterval(fetchGitHubCommits, 30000);
+            console.log("✅ Project details loaded successfully!");
+        })
+        .catch(error => console.error("❌ Error fetching project details:", error));
 }
-
-
-    // 🟢 AWS Certifications
-    const certContainer = document.getElementById("certifications-container");
-    if (certContainer) {
-        console.log("🎓 Loading AWS Certifications...");
-
-        const certifications = [
-            { id: "952f0071-5974-4753-9487-a7b47566859c" },
-            { id: "8d927d2f-3ae9-42a8-a545-c1cb5f94975e" },
-            { id: "e91dc156-f68b-4e50-a677-bae2e41c0c8f" },
-            { id: "0598dd26-4893-4ff4-a8c1-3d0185ddddb7" },
-            { id: "1f308bfe-d638-4840-9925-56440d9ea6c2" }
-        ];
-
-        certifications.forEach(cert => {
-            const certDiv = document.createElement("div");
-            certDiv.classList.add("col-md-3", "mb-4", "text-center");
-            certDiv.innerHTML = `
-                <div data-iframe-width="150" data-iframe-height="270"
-                    data-share-badge-id="${cert.id}" data-share-badge-host="https://www.credly.com">
-                </div>
-            `;
-            certContainer.appendChild(certDiv);
-        });
-
-        // Load Credly Embed Script
-        const script = document.createElement("script");
-        script.type = "text/javascript";
-        script.src = "//cdn.credly.com/assets/utilities/embed.js";
-        script.async = true;
-        document.body.appendChild(script);
-
-        console.log("✅ AWS Certifications loaded successfully!");
-    }
-
-    // 🟢 S3 File Manager - File Upload Fix
-    document.addEventListener("DOMContentLoaded", function () {
-        console.log("✅ Script.js fully loaded!");
-    
-        // 🟢 Attach event listener to Upload button
-        const uploadButton = document.getElementById("uploadBtn");
-        if (uploadButton) {
-            uploadButton.addEventListener("click", uploadFile);
-            console.log("✅ Upload button event listener attached.");
-        } else {
-            console.warn("⚠️ Upload button NOT found in the DOM.");
-        }
-    
-        // Fetch files when the page loads
-        fetchFiles();
-    });
-    
-    window.fetchFiles = function() {
-        console.log("📂 Fetching files from S3...");
-    
-        fetch("/api/s3/list")
-            .then(response => response.json())
-            .then(data => {
-                console.log("✅ S3 Files Fetched:", data);
-    
-                const fileTable = document.getElementById("fileTable");
-                if (!fileTable) {
-                    console.error("❌ ERROR: fileTable not found in DOM.");
-                    return;
-                }
-    
-                fileTable.innerHTML = ""; // Clear existing files
-    
-                if (data.length === 0) {
-                    fileTable.innerHTML = `<tr><td colspan="3" class="text-center">No files found.</td></tr>`;
-                    return;
-                }
-    
-                data.forEach(file => {
-                    fileTable.innerHTML += `
-                        <tr>
-                            <td><a href="${file.url}" target="_blank">${file.name}</a></td>
-                            <td>${(file.size / 1024).toFixed(2)} KB</td>
-                            <td><button class="btn btn-danger btn-sm" onclick="deleteFile('${file.name}')">Delete</button></td>
-                        </tr>
-                    `;
+    // 🟢 Fetch and display GitHub commits
+    const commitsContainer = document.getElementById("github-commits");
+    if (commitsContainer) {
+        console.log("📂 Fetching latest GitHub commits...");
+        function fetchGitHubCommits() {
+            fetch("/api/github-commits")
+                .then(response => response.json())
+                .then(commits => {
+                    commitsContainer.innerHTML = commits.error
+                        ? `<li class="list-group-item text-danger">${commits.error}</li>`
+                        : commits.map(commit => `
+                            <li class="list-group-item">
+                                <strong>${commit.message}</strong><br>
+                                <small>By: ${commit.author} on ${new Date(commit.date).toLocaleString()}</small><br>
+                                <a href="${commit.url}" target="_blank">View on GitHub</a>
+                            </li>
+                        `).join("");
+                    console.log("✅ GitHub commits loaded successfully!");
+                })
+                .catch(error => {
+                    console.error("❌ Error fetching GitHub commits:", error);
+                    commitsContainer.innerHTML = `<li class="list-group-item text-danger">Failed to load commits.</li>`;
                 });
-            })
-            .catch(error => console.error("❌ Error fetching S3 files:", error));
-    };
-    
-
-    window.uploadFile = function() {
-        const fileInput = document.getElementById("fileInput");
-        const file = fileInput.files[0];
-    
-        if (!file) {
-            alert("⚠️ Please select a file before uploading.");
-            return;
         }
-    
-        let formData = new FormData();
-        formData.append("file", file);
-    
-        console.log("📤 Attempting to upload file:", file.name);
-    
-        fetch("/api/s3/upload", {
-            method: "POST",
-            body: formData
-        })
-        .then(response => response.json())
-        .then(data => {
-            console.log("✅ Server Response:", data);
-    
-            if (data.error) {
-                console.error("❌ Upload Failed:", data.error);
-                alert(`❌ Upload failed: ${data.error}`);
-            } else {
-                alert("✅ File uploaded successfully!");
-                
-                // ✅ Ensure `fetchFiles()` exists before calling it
-                if (typeof fetchFiles === "function") {
-                    fetchFiles();
-                } else {
-                    console.error("❌ ERROR: fetchFiles() is not defined.");
-                }
-            }
-        })
-        .catch(error => {
-            console.error("❌ Network/Fetch Error:", error);
-            alert("❌ Upload request failed. Check console for details.");
-        });
-    };
-    
-     
-    window.deleteFile = function(fileName) {
-        console.log(`🗑️ Attempting to delete file: ${fileName}`);
-    
-        fetch("/api/s3/delete", {
-            method: "POST",
-            body: JSON.stringify({ file_name: fileName }),
-            headers: { "Content-Type": "application/json" }
-        })
-        .then(response => response.json())
-        .then(data => {
-            console.log("✅ File deleted successfully:", data);
-    
-            if (data.error) {
-                console.error("❌ Delete Failed:", data.error);
-                alert(`❌ Delete failed: ${data.error}`);
-            } else {
-                alert("✅ File deleted successfully!");
-                fetchFiles(); // ✅ Refresh file list after deletion
-            }
-        })
-        .catch(error => {
-            console.error("❌ Network/Fetch Error:", error);
-            alert("❌ Delete request failed. Check console for details.");
-        });
-    };
-    
-   
-    if (window.location.pathname === "/s3-file-manager") {
-        fetchFiles(); // Load S3 files when on the page
+        fetchGitHubCommits();
+        document.getElementById("refreshCommits")?.addEventListener("click", fetchGitHubCommits);
     }
-    // 🟢 Serverless Chatbot Integration (Prevent Duplicates)
+
+     // 🟢 AWS Certifications
+     const certContainer = document.getElementById("certifications-container");
+     if (certContainer) {
+         console.log("🎓 Loading AWS Certifications...");
+ 
+         const certifications = [
+             { id: "952f0071-5974-4753-9487-a7b47566859c" },
+             { id: "8d927d2f-3ae9-42a8-a545-c1cb5f94975e" },
+             { id: "e91dc156-f68b-4e50-a677-bae2e41c0c8f" },
+             { id: "0598dd26-4893-4ff4-a8c1-3d0185ddddb7" },
+             { id: "1f308bfe-d638-4840-9925-56440d9ea6c2" }
+         ];
+ 
+         certifications.forEach(cert => {
+             const certDiv = document.createElement("div");
+             certDiv.classList.add("col-md-3", "mb-4", "text-center");
+             certDiv.innerHTML = `
+                 <div data-iframe-width="150" data-iframe-height="270"
+                     data-share-badge-id="${cert.id}" data-share-badge-host="https://www.credly.com">
+                 </div>
+             `;
+             certContainer.appendChild(certDiv);
+         });
+ 
+         // Load Credly Embed Script
+         const script = document.createElement("script");
+         script.type = "text/javascript";
+         script.src = "//cdn.credly.com/assets/utilities/embed.js";
+         script.async = true;
+         document.body.appendChild(script);
+ 
+         console.log("✅ AWS Certifications loaded successfully!");
+     }
+
+
+    // 🟢 Serverless Chatbot Integration
     function sendMessage() {
-        if (isSending) return; // Prevent duplicate submissions
+        if (isSending) return;
         isSending = true;
 
         let userInputField = document.getElementById("user-input");
         let userInput = userInputField.value.trim();
+        let chatBox = document.getElementById("chat-box");
 
         if (!userInput) {
             isSending = false;
             return;
         }
 
-        let chatBox = document.getElementById("chat-box");
-
-        // ✅ Display user message
         chatBox.innerHTML += `<div><strong>You:</strong> ${userInput}</div>`;
 
-        // ✅ Send request to Flask API
         fetch("/api/chatbot", {
             method: "POST",
             body: JSON.stringify({ message: userInput }),
@@ -315,17 +165,10 @@ if (commitsContainer) {
         })
         .then(response => response.json())
         .then(data => {
-            console.log("📡 Chatbot API Response:", data);
-
-            if (data && data.response) {
-                chatBox.innerHTML += `<div><strong>Bot:</strong> ${data.response}</div>`;
-            } else {
-                chatBox.innerHTML += `<div><strong>Error:</strong> No response from chatbot.</div>`;
-            }
-
-            chatBox.scrollTop = chatBox.scrollHeight; // Auto-scroll to latest message
-            userInputField.value = ""; // Clear input field
-            isSending = false; // Allow new messages
+            chatBox.innerHTML += `<div><strong>Bot:</strong> ${data.response || "No response from chatbot."}</div>`;
+            chatBox.scrollTop = chatBox.scrollHeight;
+            userInputField.value = "";
+            isSending = false;
         })
         .catch(error => {
             console.error("❌ Fetch Error:", error);
@@ -334,183 +177,214 @@ if (commitsContainer) {
         });
     }
 
-    function handleKeyPress(event) {
-        if (event.key === "Enter") {
-            sendMessage();
-        }
-    }
-
-    // ✅ Ensure chatbot works only on the chatbot page
     if (window.location.pathname.includes("serverless-chatbot")) {
-        console.log("🟢 Chatbot page detected. Ready to handle messages.");
-
+        console.log("🟢 Chatbot page detected.");
         let sendButton = document.getElementById("send-btn");
         let userInput = document.getElementById("user-input");
 
-        if (!sendButton || !userInput) {
-            console.error("❌ ERROR: Chatbot elements NOT found!");
-            return;
-        }
-
-        console.log("✅ Send button detected!");
-
-        // ✅ Attach event listeners **only once**
-        if (!eventListenersAttached) {
+        if (sendButton && userInput && !eventListenersAttached) {
             sendButton.addEventListener("click", sendMessage);
-            userInput.addEventListener("keypress", handleKeyPress);
-            eventListenersAttached = true; // Mark as attached
-        }
-    }
-
-    if (fetchWeatherBtn) {
-        fetchWeatherBtn.addEventListener("click", fetchWeather);
-    }
-
-    // Allow pressing "Enter" in any field to trigger the search
-    document.querySelectorAll(".weather-input").forEach(input => {
-        input.addEventListener("keypress", function (event) {
-            if (event.key === "Enter") {
-                event.preventDefault(); // Prevent form submission
-                fetchWeather();
-            }
-        });
-    });
-
-    function fetchWeather() {
-        console.log("🔍 Fetching weather...");
-
-        const city = document.getElementById("city-input").value.trim();
-        const state = document.getElementById("state-input").value.trim().toUpperCase();
-        const zip = document.getElementById("zip-input").value.trim();
-        const country = document.getElementById("country-input").value.trim().toUpperCase() || "US";
-
-        let url = "/weather?";
-
-        if (zip) {
-            url += `zip=${zip},${country}`;
-        } else if (city && state) {
-            url += `city=${city}&state=${state}&country=${country}`;
-        } else if (city) {
-            url += `city=${city}&country=${country}`;
-        } else {
-            alert("⚠️ Please enter a city and state or a zip code.");
-            return;
-        }
-
-        console.log(`🌍 API Request URL: ${url}`);
-
-        fetch(url)
-            .then(response => response.json())
-            .then(data => {
-                if (data.error) {
-                    alert(`❌ ${data.error}`);
-                    return;
-                }
-
-                document.getElementById("weather-city").innerText = `📍 City: ${data.city}, ${data.country}`;
-                document.getElementById("weather-temp").innerText = `🌡️ Temperature: ${data.temperature}°F`;
-                document.getElementById("weather-low-high").innerText = `🔻 Low: ${data.temp_min}°F | 🔺 High: ${data.temp_max}°F`;
-                document.getElementById("weather-humidity").innerText = `💧 Humidity: ${data.humidity}%`;
-                document.getElementById("weather-description").innerText = `☁️ Description: ${data.weather}`;
-
-                const iconUrl = `https://openweathermap.org/img/wn/${data.icon}.png`;
-                const weatherIcon = document.getElementById("weather-icon");
-                weatherIcon.src = iconUrl;
-                weatherIcon.style.display = "inline"; // Show the weather icon
-            })
-            .catch(error => console.error("❌ Error fetching weather data:", error));
-    }
-    
-    document.addEventListener("DOMContentLoaded", function () {
-        console.log("✅ Script.js loaded successfully!");
-    
-        // 🟢 Fetch Random Number
-        const randomButton = document.querySelector("#random-btn");
-        const resultDisplay = document.querySelector("#random-result");
-    
-        if (randomButton && resultDisplay) {
-            console.log("🎲 Random number button found!");
-            randomButton.addEventListener("click", function () {
-                fetch("/api/random-number")
-                    .then(response => response.json())
-                    .then(data => {
-                        resultDisplay.innerText = `Your random number is: ${data.random_number}`;
-                    })
-                    .catch(error => console.error("❌ Error fetching random number:", error));
+            userInput.addEventListener("keypress", function (event) {
+                if (event.key === "Enter") sendMessage();
             });
-        } else {
-            console.warn("⚠️ Random number button NOT found in the DOM. Skipping event listener.");
+            eventListenersAttached = true;
+            console.log("✅ Chatbot event listeners attached.");
         }
-    
-        // 🟢 Contact Form Handling
+    }
+
+    function attachContactFormListener() {
         const contactForm = document.getElementById("contactForm");
         const successMessage = document.getElementById("successMessage");
     
-        if (contactForm && successMessage) {
-            console.log("📩 Contact form found! Adding event listener...");
-            contactForm.addEventListener("submit", function (event) {
-                event.preventDefault();
-    
-                // Basic validation
-                const name = document.getElementById("name").value.trim();
-                const email = document.getElementById("email").value.trim();
-                const message = document.getElementById("message").value.trim();
-    
-                if (!name || !email || !message) {
-                    alert("⚠️ Please fill in all fields.");
-                    return;
-                }
-    
-                // Show success message
-                successMessage.style.display = "block";
-    
-                // Hide success message after 3 seconds
-                setTimeout(() => {
-                    successMessage.style.display = "none";
-                }, 3000);
-    
-                // Reset the form
-                contactForm.reset();
-            });
-        } else {
-            console.warn("⚠️ Contact form NOT found in the DOM. Skipping event listener.");
+        // ✅ If the contact form does NOT exist, don't log a warning
+        if (!contactForm) {
+            console.log("ℹ️ Contact form not found on this page. Skipping listener setup.");
+            return; // ⛔ Exit early, don't set up MutationObserver
         }
-    });
     
+        console.log("📩 Contact form detected. Attaching event listener...");
+        attachEventListenerToContactForm(contactForm, successMessage);
+    }
+    
+// ✅ Function to attach event listener once the form is available
+function attachEventListenerToContactForm(contactForm, successMessage) {
+    contactForm.addEventListener("submit", function (event) {
+        event.preventDefault();
 
-window.uploadFile = function() {
-    const fileInput = document.getElementById("fileInput");
-    const file = fileInput.files[0];
+        const name = document.getElementById("name")?.value.trim();
+        const email = document.getElementById("email")?.value.trim();
+        const message = document.getElementById("message")?.value.trim();
 
-    if (!file) {
-        alert("⚠️ Please select a file before uploading.");
-        return;
+        if (!name || !email || !message) {
+            alert("⚠️ Please fill in all fields.");
+            return;
+        }
+
+        // Show success message
+        successMessage.style.display = "block";
+
+        // Hide success message after 3 seconds
+        setTimeout(() => {
+            successMessage.style.display = "none";
+        }, 3000);
+
+        // Reset the form
+        contactForm.reset();
+    });
+
+    console.log("✅ Contact form event listener attached.");
+}
+    
+// ✅ Call function after DOM is loaded
+document.addEventListener("DOMContentLoaded", attachContactFormListener);
+});    
+
+ // ✅ Ensure Random Number Button Works
+ const randomButton = document.getElementById("random-btn");
+ const resultDisplay = document.getElementById("random-result");
+
+ if (randomButton && resultDisplay) {
+     console.log("🎲 Random number button found!");
+     randomButton.addEventListener("click", function () {
+         console.log("🔄 Fetching random number from API...");
+         fetch("/api/random-number")
+             .then(response => response.json())
+             .then(data => {
+                 console.log("✅ API Response:", data);
+                 resultDisplay.innerText = `Your random number is: ${data.random_number}`;
+             })
+             .catch(error => console.error("❌ Error fetching random number:", error));
+     });
+ }
+
+
+ // Allow pressing "Enter" in any field to trigger the search
+ document.querySelectorAll(".weather-input").forEach(input => {
+     input.addEventListener("keypress", function (event) {
+         if (event.key === "Enter") {
+             event.preventDefault(); // Prevent form submission
+             fetchWeather();
+         }
+     });
+ });
+
+
+ function fetchWeather() {
+     console.log("🔍 Fetching weather...");
+
+     const city = document.getElementById("city-input").value.trim();
+     const state = document.getElementById("state-input").value.trim().toUpperCase();
+     const zip = document.getElementById("zip-input").value.trim();
+     const country = document.getElementById("country-input").value.trim().toUpperCase() || "US";
+
+     let url = "/weather?";
+
+     if (zip) {
+         url += `zip=${zip},${country}`;
+     } else if (city && state) {
+         url += `city=${city}&state=${state}&country=${country}`;
+     } else if (city) {
+         url += `city=${city}&country=${country}`;
+     } else {
+         alert("⚠️ Please enter a city and state or a zip code.");
+         return;
+     }
+
+     console.log(`🌍 API Request URL: ${url}`);
+
+     fetch(url)
+         .then(response => response.json())
+         .then(data => {
+             if (data.error) {
+                 alert(`❌ ${data.error}`);
+                 return;
+             }
+
+             document.getElementById("weather-city").innerText = `📍 City: ${data.city}, ${data.country}`;
+             document.getElementById("weather-temp").innerText = `🌡️ Temperature: ${data.temperature}°F`;
+             document.getElementById("weather-low-high").innerText = `🔻 Low: ${data.temp_min}°F | 🔺 High: ${data.temp_max}°F`;
+             document.getElementById("weather-humidity").innerText = `💧 Humidity: ${data.humidity}%`;
+             document.getElementById("weather-description").innerText = `☁️ Description: ${data.weather}`;
+
+             const iconUrl = `https://openweathermap.org/img/wn/${data.icon}.png`;
+             const weatherIcon = document.getElementById("weather-icon");
+             weatherIcon.src = iconUrl;
+             weatherIcon.style.display = "inline"; // Show the weather icon
+         })
+         .catch(error => console.error("❌ Error fetching weather data:", error));
+ };
+
+
+    // 🟢 Fetch Files for S3 File Manager
+    function fetchFiles() {
+        console.log("📂 Fetching files from S3...");
+        fetch("/api/s3/list")
+            .then(response => response.json())
+            .then(data => {
+                const fileTable = document.getElementById("fileTable");
+                if (!fileTable) return console.error("❌ ERROR: fileTable not found in DOM.");
+
+                fileTable.innerHTML = data.length === 0
+                    ? `<tr><td colspan="3" class="text-center">No files found.</td></tr>`
+                    : data.map(file => `
+                        <tr>
+                            <td><a href="${file.url}" target="_blank">${file.name}</a></td>
+                            <td>${(file.size / 1024).toFixed(2)} KB</td>
+                            <td><button class="btn btn-danger btn-sm" onclick="deleteFile('${file.name}')">Delete</button></td>
+                        </tr>
+                    `).join("");
+            })
+            .catch(error => console.error("❌ Error fetching S3 files:", error));
     }
 
-    let formData = new FormData();
-    formData.append("file", file);
+    if (window.location.pathname === "/s3-file-manager") {
+        fetchFiles();
+    }
 
-    console.log("📤 Attempting to upload file:", file.name);
+    // 🟢 Upload File to S3
+    window.uploadFile = function () {
+        const fileInput = document.getElementById("fileInput");
+        const file = fileInput.files[0];
 
-    fetch("/api/s3/upload", {
-        method: "POST",  // ✅ Ensure it's a POST request
-        body: formData
-    })
-    .then(response => response.json())
-    .then(data => {
-        console.log("✅ Server Response:", data);
-    
-        if (data.error) {
-            console.error("❌ Upload Failed:", data.error);
-            alert(`❌ Upload failed: ${data.error}`);
-        } else {
-            alert("✅ File uploaded successfully!");
-            fetchFiles(); // Refresh file list
-        }
-    })
-    .catch(error => {
-        console.error("❌ Network/Fetch Error:", error);
-        alert("❌ Upload request failed. Check console for details.");
-    });
-    
-}})
+        if (!file) return alert("⚠️ Please select a file before uploading.");
+
+        let formData = new FormData();
+        formData.append("file", file);
+
+        fetch("/api/s3/upload", { method: "POST", body: formData })
+        .then(response => response.json())
+        .then(data => {
+            if (data.error) {
+                alert(`❌ Upload failed: ${data.error}`);
+            } else {
+                alert("✅ File uploaded successfully!");
+                fetchFiles();
+            }
+        })
+        .catch(error => {
+            console.error("❌ Network/Fetch Error:", error);
+            alert("❌ Upload request failed. Check console for details.");
+        });
+    };
+
+    // 🟢 Delete File from S3
+    window.deleteFile = function (fileName) {
+        fetch("/api/s3/delete", {
+            method: "POST",
+            body: JSON.stringify({ file_name: fileName }),
+            headers: { "Content-Type": "application/json" }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.error) {
+                alert(`❌ Delete failed: ${data.error}`);
+            } else {
+                alert("✅ File deleted successfully!");
+                fetchFiles();
+            }
+        })
+        .catch(error => {
+            console.error("❌ Network/Fetch Error:", error);
+            alert("❌ Delete request failed. Check console for details.");
+        });
+    };

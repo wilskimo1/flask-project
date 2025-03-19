@@ -1,4 +1,4 @@
-from flask import Blueprint, render_template, jsonify, redirect, url_for, request
+from flask import Blueprint, render_template, jsonify
 import boto3
 from datetime import datetime, timedelta, timezone  # ✅ Import timezone
 from flask_login import login_required, current_user
@@ -45,11 +45,10 @@ def get_ec2_cpu_utilization():
 
 @infra_monitoring_bp.route("/")
 def monitoring_dashboard():
-    """Render Infrastructure Monitoring Dashboard page (Requires login)."""
-    if not current_user.is_authenticated:
-        return redirect(url_for("login", next=request.url))  # ✅ Preserve original URL
+    """Render Infrastructure Monitoring Dashboard page (No login required)."""
+    is_logged_in = current_user.is_authenticated  # ✅ Check login state
+    return render_template("infra_monitoring_dashboard.html", is_admin=is_logged_in)
 
-    return render_template("infra_monitoring_dashboard.html", is_admin=True)
 
 @infra_monitoring_bp.route("/api/monitoring", methods=["GET"])
 @login_required

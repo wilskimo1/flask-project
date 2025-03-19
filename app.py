@@ -1,6 +1,7 @@
-from flask import Flask, render_template, jsonify, send_from_directory, request, redirect, url_for
+from flask import Flask, render_template, jsonify, send_from_directory, request, redirect, url_for, session
+from flask_session import Session
 import os, random, requests
-from flask_login import LoginManager, UserMixin, login_user, login_required, logout_user
+from flask_login import LoginManager, UserMixin, login_user, login_required, logout_user, current_user
 import config  # Import your secure credentials (if using config.py)
 from projects.aws_cost_tracker import aws_cost_tracker_bp  # Import the function
 from projects.flask_resume_api import flask_resume_api_bp  # ✅ Resume API
@@ -14,8 +15,17 @@ app = Flask(__name__)
 app.config['TEMPLATES_AUTO_RELOAD'] = True
 app.secret_key = os.urandom(24)  
 
-app.config["SESSION_PERMANENT"] = False  # ✅ Default session expires when browser closes
-app.config["REMEMBER_COOKIE_DURATION"] = timedelta(days=1)  # ✅ "Remember Me" lasts for 1 day
+
+# ✅ Initialize Flask-Session the correct way
+app.config["SESSION_TYPE"] = "filesystem"  # Store sessions in the filesystem
+app.config["SESSION_PERMANENT"] = False  # Make sessions temporary
+app.config["SESSION_USE_SIGNER"] = True  # Encrypt session cookies
+app.config["SESSION_FILE_DIR"] = "./flask_session"  # Define session storage location
+
+Session(app)  # ✅ Correct way to initialize Flask-Session
+
+
+
 
 login_manager = LoginManager()
 login_manager.init_app(app)
@@ -33,6 +43,11 @@ def load_user(user_id):
 @login_manager.unauthorized_handler
 def unauthorized_callback():
     return jsonify({"error": "User is not authenticated"}), 403  # 👈 Now returns JSON instead of redirecting
+
+@app.before_request
+def debug_login_state():
+    print(f"🔍 DEBUG: User authenticated? {current_user.is_authenticated}")
+
 
 # Import Blueprints (modularized projects)
 from projects.aws_cost_tracker import aws_cost_tracker_bp
@@ -85,21 +100,15 @@ def login():
             user = User(id=username)
             login_user(user, remember=remember)  # ✅ Enable "Remember Me" persistence
 
-            # ✅ Ensure next_page is valid and not empty
+            session["logged_in"] = True  # ✅ Store login state in session
+            session.modified = True  # ✅ Mark session as modified
+
+            print(f"🔓 DEBUG: User logged in? {current_user.is_authenticated}")  # ✅ Debugging
+
             if next_page and next_page != "None":
-                # ✅ Handle redirection based on requested project page
-                if "/projects/infra-monitoring-dashboard/page" in next_page:
-                    return redirect(url_for("infra_monitoring.monitoring_dashboard"))  # ✅ Redirect to monitoring
+                return redirect(next_page)
 
-                if "/projects/flask-resume-api/page" in next_page:
-                    return redirect(url_for("flask_resume_api.resume_page"))  # ✅ Redirect to resume
-
-                if "/projects/s3-file-manager/page" in next_page:
-                    return redirect(url_for("s3_file_manager.s3_dashboard"))  # ✅ Redirect to S3 File Manager
-
-                return redirect(next_page)  # ✅ Default redirect to requested page
-            
-            return redirect(url_for("projects_page"))  # ✅ Default to projects list if no next_page
+            return redirect(url_for("projects_page"))
 
         return "Invalid credentials. Try again."
 
@@ -107,12 +116,21 @@ def login():
 
 
 
+
 # 🔓 Logout Route
 @app.route("/logout")
 @login_required
 def logout():
+    session.clear()  # ✅ Ensure session is completely cleared
     logout_user()
-    return redirect(url_for("home"))  # ✅ Redirects to home instead of a specific project
+    
+    # ✅ Check if 'next' parameter exists in the request
+    next_page = request.args.get("next")
+    
+    if next_page:
+        return redirect(next_page)  # ✅ Redirect to the provided 'next' page   
+    return redirect(url_for("projects_page"))  # ✅ Default to projects list if no next page is provided
+
 
 # Project Data
 projects = [
@@ -207,21 +225,25 @@ def project_page(project_id):
         "infra-monitoring-dashboard": "infra_monitoring_dashboard.html",
         "s3-file-manager": "s3_file_manager.html",
         "serverless-chatbot": "serverless_chatbot.html",
-        "weather-dashboard": "weather_dashboard.html",  # ✅ Added Weather Dashboard
-        "flask-aws-deployment": "flask_aws_deployment.html"
-        }
+        "weather-dashboard": "weather_dashboard.html",
+        #"flask-aws-deployment": "flask_aws_deployment.html"
+    }
 
     template_name = template_map.get(project_id)
 
     if not template_name:
         return "Project page not found", 404
 
-    return render_template(template_name)
+    is_admin = current_user.is_authenticated  # ✅ Ensure is_admin is always defined
+    print(f"DEBUG: Rendering {template_name}, is_admin={is_admin}")  # ✅ Debugging output
+
+    return render_template(template_name, is_admin=is_admin)  # ✅ Pass is_admin explicitly
+
 
 # 📑 Deployment Documentation Page
-@app.route("/deployment-docs")
-def deployment_docs():
-    return render_template("deployment_docs.html")
+#@app.route("/deployment-docs")
+#def deployment_docs():
+ #   return render_template("deployment_docs.html")
 
 # 🔍 Route for Specific Project Page
 @app.route("/projects/<project_id>")

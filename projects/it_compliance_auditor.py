@@ -30,14 +30,17 @@ def get_compliance_findings():
     except Exception as e:
         return {"error": str(e)}
 
-### 🔒 **Login Required for UI**
-@it_compliance_auditor_bp.route("/")
-@login_required
+### 🔓 **Allow All Users to View the Page (No Login Required)**
+@it_compliance_auditor_bp.route("/projects/it-compliance-auditor/page")
 def compliance_page():
-    """Render the Compliance Auditor page (Requires Login)."""
-    return render_template("it_compliance_auditor.html", is_admin=current_user.is_authenticated)
+    """Render the IT Compliance Auditor page (Publicly Accessible)."""
+    is_admin = current_user.is_authenticated  # ✅ Check if user is logged in
+    print(f"🔍 DEBUG: isAdmin = {is_admin}")  # ✅ Debugging
+    return render_template("it_compliance_auditor.html", is_admin=is_admin)
 
-### 🔒 **Login Required for API**
+
+
+### 🔒 **Only Require Login for API Requests**
 @it_compliance_auditor_bp.route("/api/compliance", methods=["GET"])
 @login_required
 def fetch_compliance_data():

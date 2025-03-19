@@ -58,6 +58,8 @@
     </div>
 </div>
 
+<!-- ✅ Add hidden data to store login status -->
+<div id="isAdminData" style="display: none;">{{ is_admin | tojson }}</div>
 
 
     <!-- Go Back Button -->
@@ -70,29 +72,69 @@
 
 <script>
 document.addEventListener("DOMContentLoaded", function () {
-    document.getElementById("refreshMonitoring")?.addEventListener("click", fetchMonitoringData);
-    fetchMonitoringData(); // Auto-fetch on load
+    console.log("✅ Infrastructure Monitoring script loaded!");
+
+    const refreshButton = document.getElementById("refreshMonitoring");
+    const monitoringContainer = document.getElementById("monitoringResults");
+
+    // ✅ Ensure isAdmin is properly retrieved from Flask
+    let isAdmin = false;
+    try {
+        const isAdminElement = document.getElementById("isAdminData");
+        isAdmin = isAdminElement ? JSON.parse(isAdminElement.textContent) : false;
+    } catch (error) {
+        console.error("❌ Error parsing is_admin JSON:", error);
+    }
+
+    console.log("🔍 DEBUG: isAdmin =", isAdmin);
+
+    if (!isAdmin) {
+        console.warn("🔒 User NOT logged in. Monitoring data is restricted.");
+        if (monitoringContainer) {
+            monitoringContainer.innerHTML = `<p class='text-center text-warning'>🔒 Please log in to view monitoring data.</p>`;
+        }
+        return;
+    }
+
+    console.log("🟢 User is logged in. Fetching monitoring data...");
+    fetchMonitoringData();
+    refreshButton?.addEventListener("click", fetchMonitoringData);
 
     function fetchMonitoringData() {
-        fetch("/infra-monitoring/api/monitoring")
-            .then(response => response.json())
-            .then(data => {
-                const resultsDiv = document.getElementById("monitoringResults");
-                resultsDiv.innerHTML = ""; // Clear previous results
+        console.log("📡 Fetching monitoring data...");
 
-                if (data.error) {
-                    resultsDiv.innerHTML = "<p class='text-danger'>❌ Error loading monitoring data.</p>";
+        fetch("/infra-monitoring/api/monitoring")
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error(`HTTP error! Status: ${response.status}`);
+                }
+                return response.json();
+            })
+            .then(data => {
+                if (!monitoringContainer) {
+                    console.error("❌ ERROR: monitoringContainer is not found in the DOM.");
                     return;
                 }
 
-                resultsDiv.innerHTML = `<p class="text-center text-primary">📊 CPU Utilization: <strong>${data.cpu_utilization}%</strong></p>`;
+                monitoringContainer.innerHTML = "";
+
+                if (data.error) {
+                    monitoringContainer.innerHTML = "<p class='text-danger'>❌ Error loading monitoring data.</p>";
+                    return;
+                }
+
+                monitoringContainer.innerHTML = `<p class="text-center text-primary">📊 CPU Utilization: <strong>${data.cpu_utilization}%</strong></p>`;
             })
             .catch(error => {
-                console.error("Error fetching monitoring data:", error);
-                document.getElementById("monitoringResults").innerHTML = "<p class='text-danger'>❌ Error loading monitoring data.</p>";
+                console.error("❌ Error fetching monitoring data:", error);
+                if (monitoringContainer) {
+                    monitoringContainer.innerHTML = "<p class='text-danger'>❌ Error loading monitoring data.</p>";
+                }
             });
     }
 });
+
+
 </script>
 
 {% endblock %}

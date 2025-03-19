@@ -7,6 +7,9 @@
     <h1 class="text-center">IT Compliance Auditor</h1>
     <p class="text-center">Scans AWS for compliance violations.</p>
 
+    <!-- ✅ Store is_admin as a hidden div for JavaScript -->
+    <div id="isAdminData" data-is-admin="{{ is_admin | tojson | safe }}" style="display: none;"></div>
+
     {% if is_admin %}
     <!-- Compliance Scan Results -->
     <div class="card p-4 mt-4">
@@ -23,42 +26,41 @@
     </div>
 
     <div class="text-center mt-4">
-        <a href="{{ url_for('logout') }}" class="btn btn-danger">🚪 Logout</a>
+        <a href="{{ url_for('logout', next=request.path) }}" class="btn btn-danger">🚪 Logout</a>
     </div>
     {% else %}
     <div class="text-center mt-4">
         <!-- ✅ Ensure proper redirect after login -->
-        <a href="{{ url_for('login', next=url_for('it_compliance_auditor.compliance_page')) }}" class="btn btn-warning">
+        <a href="{{ url_for('login', next=request.path) }}" class="btn btn-warning">
             🔑 Login to View Compliance Reports
         </a>
     </div>
     {% endif %}
 
     <!-- Compliance Auditor Dashboard Image (Always Visible) -->
-<div class="text-center mt-4">
-    <p class="text-muted">🔍 Click to enlarge the IT Compliance Auditor preview</p>
-    <a href="#" data-bs-toggle="modal" data-bs-target="#complianceImageModal">
-        <img src="{{ url_for('static', filename='images/complianceAuditor.png') }}" 
-             alt="IT Compliance Auditor" class="img-thumbnail" style="max-width: 200px;">
-    </a>
-</div>
+    <div class="text-center mt-4">
+        <p class="text-muted">🔍 Click to enlarge the IT Compliance Auditor preview</p>
+        <a href="#" data-bs-toggle="modal" data-bs-target="#complianceImageModal">
+            <img src="{{ url_for('static', filename='images/complianceAuditor.png') }}" 
+                 alt="IT Compliance Auditor" class="img-thumbnail" style="max-width: 200px;">
+        </a>
+    </div>
 
-<!-- Bootstrap Modal for Enlarged Image -->
-<div class="modal fade" id="complianceImageModal" tabindex="-1" aria-labelledby="complianceImageModalLabel" aria-hidden="true">
-    <div class="modal-dialog modal-lg">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title" id="complianceImageModalLabel">IT Compliance Auditor</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-            </div>
-            <div class="modal-body text-center">
-                <img src="{{ url_for('static', filename='images/complianceAuditor.png') }}" 
-                     alt="IT Compliance Auditor" class="img-fluid">
+    <!-- Bootstrap Modal for Enlarged Image -->
+    <div class="modal fade" id="complianceImageModal" tabindex="-1" aria-labelledby="complianceImageModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="complianceImageModalLabel">IT Compliance Auditor</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body text-center">
+                    <img src="{{ url_for('static', filename='images/complianceAuditor.png') }}" 
+                         alt="IT Compliance Auditor" class="img-fluid">
+                </div>
             </div>
         </div>
     </div>
-</div>
-
 
     <!-- Go Back Button -->
     <div class="text-center mt-4">
@@ -70,18 +72,49 @@
 
 <script>
 document.addEventListener("DOMContentLoaded", function () {
-    document.getElementById("refreshCompliance")?.addEventListener("click", fetchComplianceData);
-    fetchComplianceData(); // Auto-fetch on load
+    console.log("✅ Compliance Auditor script loaded!");
+
+    const refreshButton = document.getElementById("refreshCompliance");
+    const complianceContainer = document.getElementById("complianceResults");
+
+    // ✅ Extract isAdmin value from the hidden div
+    const isAdminElement = document.getElementById("isAdminData");
+    const isAdmin = isAdminElement ? JSON.parse(isAdminElement.getAttribute("data-is-admin")) : false;
+
+    console.log("DEBUG: isAdmin =", isAdmin);  // ✅ Debugging
+
+    if (!isAdmin) {
+        console.warn("🔒 User NOT logged in. Compliance data is restricted.");
+        if (complianceContainer) {
+            complianceContainer.innerHTML = `<p class='text-center text-warning'>🔒 Please log in to view compliance reports.</p>`;
+        }
+        return;
+    }
+
+    console.log("🟢 User is logged in. Fetching compliance data...");
+    fetchComplianceData();
+    refreshButton?.addEventListener("click", fetchComplianceData);
 
     function fetchComplianceData() {
+        console.log("📡 Fetching compliance findings...");
+
         fetch("/it-compliance/api/compliance")
-            .then(response => response.json())
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error(`HTTP error! Status: ${response.status}`);
+                }
+                return response.json();
+            })
             .then(data => {
-                const resultsDiv = document.getElementById("complianceResults");
-                resultsDiv.innerHTML = ""; // Clear previous results
+                if (!complianceContainer) {
+                    console.error("❌ ERROR: complianceContainer is not found in the DOM.");
+                    return;
+                }
+
+                complianceContainer.innerHTML = "";
 
                 if (data.length === 0 || data.error) {
-                    resultsDiv.innerHTML = "<p class='text-center text-success'>✅ No active compliance violations detected!</p>";
+                    complianceContainer.innerHTML = "<p class='text-center text-success'>✅ No active compliance violations detected!</p>";
                     return;
                 }
 
@@ -103,7 +136,7 @@ document.addEventListener("DOMContentLoaded", function () {
                     let severityClass = finding.severity === "CRITICAL" ? "text-danger fw-bold" : 
                                         finding.severity === "HIGH" ? "text-warning fw-bold" : 
                                         "text-success";
-                    
+
                     tableHtml += `
                         <tr>
                             <td>${finding.title}</td>
@@ -116,14 +149,16 @@ document.addEventListener("DOMContentLoaded", function () {
                 });
 
                 tableHtml += "</tbody></table>";
-                resultsDiv.innerHTML = tableHtml;
+                complianceContainer.innerHTML = tableHtml;
             })
             .catch(error => {
-                console.error("Error fetching compliance findings:", error);
-                document.getElementById("complianceResults").innerHTML = "<p class='text-danger'>❌ Error loading compliance data.</p>";
+                console.error("❌ Error fetching compliance findings:", error);
+                if (complianceContainer) {
+                    complianceContainer.innerHTML = "<p class='text-danger'>❌ Error loading compliance data.</p>";
+                }
             });
     }
 });
-</script>
+</script>    
 
 {% endblock %}
